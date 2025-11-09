@@ -1,0 +1,2 @@
+# chrome-chatgpt-sidebar-editor
+Chrome拡張：ChatGPTにサイドバー形式でプロンプトを記入できる簡易エディタを追加するMVP
