@@ -17,6 +17,18 @@
     }
   },
 
+  "action": {
+    "default_title": "AIチャットエディタ＋ for マイGPT",
+    "default_icon": {
+      "16": "icon-16x16.png"
+    }
+  },
+
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
+
   "icons": {
     "16": "icon-16x16.png",
     "32": "icon-32x32.png",
@@ -29,5 +41,12 @@
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
       "js": ["content.js"]
     }
-  ]
+  ],
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "ai-chat-editor-plus@tubeclip.dev",
+      "strict_min_version": "115.0"
+    }
+  }
 }
