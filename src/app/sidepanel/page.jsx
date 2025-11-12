@@ -178,8 +178,8 @@ const SidepanelAsPage = () => {
 const handleKeyDown = (e) => {
   if (e.metaKey && e.key === "Enter") {
     e.preventDefault();
-    if (e.shiftKey) sendPrompt(true); // ⌘+Shift+Enter → 送信して消す
-    else sendPrompt(false);           // ⌘+Enter → 送信のみ
+    if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter → 送信のみ
+    else sendPrompt(true);             // ⌘+Enter → 送信して消す
   }
 };
 
