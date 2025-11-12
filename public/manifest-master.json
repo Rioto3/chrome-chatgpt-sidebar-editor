@@ -42,17 +42,18 @@
       "js": ["content.js"]
     }
   ],
-
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "aichat-editor-plus@tubeclip.work",
-      "strict_min_version": "109.0",
-      "data_collection_permissions": {
-        "required": false,
-        "submit_feedback": false,
-        "collect_telemetry": false,
-        "user_input": false
-      }
+"browser_specific_settings": {
+  "gecko": {
+    "id": "aichat-editor-plus@tubeclip.work",
+    "strict_min_version": "109.0",
+    "data_collection_permissions": {
+      "required": ["none"],
+      "optional": []
     }
   }
+}
+
+
+
+
 }
