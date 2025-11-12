@@ -1,29 +1,17 @@
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
   if (message.type === 'SEND_PROMPT') {
     const promptText = message.payload;
-
-    // 現時点の DOM 構造を確認
     const inputBox = document.querySelector('.ProseMirror#prompt-textarea, [contenteditable="true"][data-virtualkeyboard="true"]');
-    const sendButton = document.querySelector('#composer-submit-button, [data-testid="send-button"]');
-
-    // 状況ログを alert で出す
-    alert([
-      `=== ChatGPT送信デバッグ ===`,
-      `入力欄: ${inputBox ? '✅ 見つかった' : '❌ 見つからない'}`,
-      `送信ボタン: ${sendButton ? '✅ 見つかった' : '❌ 見つからない'}`,
-      `promptText: "${promptText}"`,
-      `inputBox=${inputBox ? inputBox.outerHTML.slice(0, 200) + '…' : 'null'}`,
-      `sendButton=${sendButton ? sendButton.outerHTML.slice(0, 200) + '…' : 'null'}`,
-    ].join('\n'));
 
     if (!inputBox) {
       alert('❌ 入力欄が見つかりません。');
       return;
     }
 
-    // 一応送信まで試す流れ（空文字ではボタンが出ない可能性あり）
+    // 1️⃣ 入力欄をフォーカス
     inputBox.focus();
 
+    // 2️⃣ ProseMirrorに文字を挿入（reactにイベント伝搬）
     inputBox.dispatchEvent(new InputEvent('beforeinput', {
       bubbles: true,
       cancelable: true,
@@ -39,7 +27,10 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       data: promptText,
     }));
 
-    // ボタン待機
+    // 🕒 3️⃣ React側の再描画を待つ（300〜500ms程度）
+    await new Promise(r => setTimeout(r, 500));
+
+    // 4️⃣ ボタンが出るまで最大3秒待機
     const waitForSendButton = async (timeout = 3000) => {
       const start = Date.now();
       return new Promise((resolve, reject) => {
@@ -53,13 +44,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       });
     };
 
-    waitForSendButton()
-      .then((btn) => {
-        alert('✅ 送信ボタン検出！クリックします。');
-        btn.click();
-      })
-      .catch((err) => {
-        alert(`⚠️ 送信ボタン検出失敗: ${err.message}`);
-      });
+    // 5️⃣ 出現後クリック
+    try {
+      const btn = await waitForSendButton();
+      btn.click();
+      console.log('✅ 送信ボタン検出＆クリック成功');
+    } catch (err) {
+      console.warn('⚠️ ボタン出現待ちタイムアウト', err);
+    }
   }
 });
