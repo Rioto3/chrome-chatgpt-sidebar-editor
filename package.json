@@ -1,0 +1,21 @@
+{
+  "version": "0.0.1",
+  "scripts": {
+    "dev:devel": "NODE_ENV=development webpack --watch",
+    "build:devel": "NODE_ENV=development webpack",
+    "build:prod": "NODE_ENV=production webpack"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.0.0",
+    "@babel/preset-react": "^7.0.0",
+    "babel-loader": "^9.0.0",
+    "copy-webpack-plugin": "^13.0.1",
+    "webpack": "^5.0.0",
+    "webpack-cli": "^5.0.0"
+  },
+  "dependencies": {
+    "html-webpack-plugin": "^5.6.4",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0"
+  }
+}
