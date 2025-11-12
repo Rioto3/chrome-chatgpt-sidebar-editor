@@ -13,8 +13,6 @@ const SidepanelPage = () => {
 
 
 
-
-
 // DOMContentLoaded後にReactをマウント
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('root');
