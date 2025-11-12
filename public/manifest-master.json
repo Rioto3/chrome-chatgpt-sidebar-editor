@@ -45,8 +45,14 @@
 
   "browser_specific_settings": {
     "gecko": {
-      "id": "ai-chat-editor-plus@tubeclip.dev",
-      "strict_min_version": "115.0"
+      "id": "aichat-editor-plus@tubeclip.work",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": false,
+        "submit_feedback": false,
+        "collect_telemetry": false,
+        "user_input": false
+      }
     }
   }
 }
