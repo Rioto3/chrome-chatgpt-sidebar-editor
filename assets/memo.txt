@@ -1,2 +1,0 @@
-ターゲットURL = toUrl
-営業側URL = fromUrl
