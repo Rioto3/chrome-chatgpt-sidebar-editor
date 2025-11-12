@@ -97,12 +97,8 @@ module.exports = {
 
         { from: "src/app/background.js", to: "background.js" },
 
-        { from: "src/app/popup/popup.html", to: "popup.html" }, 
-        { from: "src/app/popup/popup.js", to: "popup.js" }, 
-
-
-
-
+        // { from: "src/app/popup/popup.html", to: "popup.html" }, 
+        // { from: "src/app/popup/popup.js", to: "popup.js" }, 
 
 
       ],
