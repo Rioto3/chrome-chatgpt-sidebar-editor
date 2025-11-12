@@ -77,15 +77,6 @@ module.exports = {
             // package.json からバージョンを取得して埋め込む
             manifest.version = require('./package.json').version;
             
-            // 環境変数に応じて特定のキーを埋め込む
-            if (process.env.NODE_ENV === 'development') {
-              // 開発時のoauth2.client_id
-              manifest.oauth2.client_id = '676339543528-3p5inpuff4v9rdhq4bpmhu16vfnqfhi5.apps.googleusercontent.com';
-            } else {
-              // 本番時のoauth2.client_id
-              manifest.oauth2.client_id = '676339543528-pbc3apao483ikm9p4v7gnh34m0lo0ijo.apps.googleusercontent.com';
-            }
-
             // JSON文字列に戻して返す
             return JSON.stringify(manifest, null, 2);
           },
@@ -95,7 +86,9 @@ module.exports = {
         
         { from: "public/icons/**/*", to: "[name][ext]" },
 
-        { from: "src/app/background.js", to: "background.js" },
+        { from: "src/app/content.js", to: "content.js" },
+        // { from: "src/app/background.js", to: "background.js" },
+
 
         // { from: "src/app/popup/popup.html", to: "popup.html" }, 
         // { from: "src/app/popup/popup.js", to: "popup.js" }, 

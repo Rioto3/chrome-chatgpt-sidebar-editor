@@ -12,7 +12,6 @@
   },
   
   "permissions": [
-    "sidePanel",
     "activeTab",
     "storage",
     "tabs"
@@ -28,8 +27,12 @@
   
   "side_panel": {
     "default_path": "sidepanel.html"
-  },
-  "background": {
-    "service_worker": "background.js"
-  }
+    },
+  "content_scripts": [
+    {
+      "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+      "js": ["content.js"]
+    }
+  ]
+
 }
