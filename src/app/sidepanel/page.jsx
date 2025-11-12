@@ -1,7 +1,7 @@
 import React, { useState, } from 'react';
 import { createRoot } from 'react-dom/client';
 
-const SidepanelPage = () => {
+export default SidepanelAsPage = () => {
   const [prompt, setPrompt] = useState(() => {
     return localStorage.getItem('prompt') || '';
   });
@@ -38,8 +38,6 @@ document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('root');
   if (container) {
     const root = createRoot(container);
-    root.render(<SidepanelPage />);
+    root.render(<SidepanelAsPage />);
   }
 });
-
-export default SidepanelPage;
