@@ -53,13 +53,13 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "src/app/sidepanel/template.html", 
+      template: "src/app/template.html", 
       filename: "sidepanel.html",
       chunks: ['sidepanel']}),
 
 
     new HtmlWebpackPlugin({
-      template: "src/app/settings/template.html", 
+      template: "src/app/template.html", 
       filename: "settings.html",
       chunks: ['settings']}),
 
