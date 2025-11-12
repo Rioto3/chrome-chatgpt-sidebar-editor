@@ -54,3 +54,26 @@ chrome.runtime.onMessage.addListener(async (message, sender, sendResponse) => {
     }
   }
 });
+
+
+
+
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  if (message.type === "GET_CURRENT_CHAT_TITLE") {
+    try {
+      const path = new URL(location.href).pathname;
+      const links = document.querySelectorAll('#history a[href]');
+      for (const a of links) {
+        if (a.getAttribute('href') === path) {
+          const title = a.querySelector('span[dir="auto"]');
+          sendResponse({ title: title?.innerText || '新しいお気に入り' });
+          return true; // keep the channel open
+        }
+      }
+      sendResponse({ title: '新しいお気に入り' });
+    } catch (e) {
+      sendResponse({ title: '新しいお気に入り', error: e.message });
+    }
+    return true;
+  }
+});

@@ -71,42 +71,26 @@ const handleSend = () => {
     localStorage.setItem('prompt', '');
   };
 
-const addCurrentChat = () => {
+
+
+  const addCurrentChat = () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tab = tabs[0];
-    const url = tab?.url || 'unknown';
-    const tabId = tab?.id;
+    if (!tab?.id) return;
+    const url = tab.url || 'unknown';
 
-    chrome.scripting.executeScript(
-      {
-        target: { tabId },
-        func: (currentUrl) => {
-          try {
-            const path = new URL(currentUrl).pathname;
-            const historyLinks = document.querySelectorAll('#history a[href]');
-            for (const a of historyLinks) {
-              if (a.getAttribute('href') === path) {
-                const title = a.querySelector('span[dir="auto"]');
-                return title?.innerText || null;
-              }
-            }
-            return null;
-          } catch (err) {
-            return null;
-          }
-        },
-        args: [url],
-      },
-      (results) => {
-        const title = results?.[0]?.result || '新しいお気に入り';
-        const newEntry = { name: title, url };
-        const updated = [...bookmarks, newEntry];
-        setBookmarks(updated);
-        localStorage.setItem('bookmarks', JSON.stringify(updated));
-      }
-    );
+    chrome.tabs.sendMessage(tab.id, { type: "GET_CURRENT_CHAT_TITLE" }, (response) => {
+      const title = response?.title || '新しいお気に入り';
+      const newEntry = { name: title, url };
+      const updated = [...bookmarks, newEntry];
+      setBookmarks(updated);
+      localStorage.setItem('bookmarks', JSON.stringify(updated));
+    });
   });
 };
+
+
+
 
   const renameBookmark = (index) => {
     const newName = prompt('新しい名前を入力してください');
