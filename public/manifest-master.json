@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "送Rail 営業支援ツール",
+  "name": "chrome-chatgpt-sidebar-editor",
   "version": "{placeholder}",
-  "description": "企業フォーム自動入力とトラッキング機能",
+  "description": "chrome-chatgpt-sidebar-editor",
   
   "icons": {
     "16": "icon-16x16.png",
