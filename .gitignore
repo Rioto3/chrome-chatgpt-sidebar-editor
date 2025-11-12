@@ -1,0 +1,9 @@
+spreadsheet
+node_modules
+.DS_Store
+dist*
+.vscode
+*.log
+.env
+*.pdf
+

@@ -1,0 +1,27 @@
+{
+  "spreadsheet": {
+    "sheetId": "191RAO24HomXJTOUQYOEe35nlOHSYzbSaOnC1VKCbmwY",
+    "sheetName": "企業リスト",
+    "companyNameColumn": "A",
+    "toUrlColumn": "D",
+    "fromUrlColumn": "E"
+  },
+  "domesticUser": {
+    "userLastNameKana_domestic": "ヤマダ",
+    "userLastName_domestic": "山田",
+    "userFirstNameKana_domestic": "タロウ",
+    "userFirstName_domestic": "太郎",
+    "userEmail_domestic": "t.yamada@example-corp.co.jp",
+    "userDepartment_domestic": "営業部",
+    "userPosition_domestic": "営業課長",
+    "userCompany_domestic": "株式会社サンプル商事",
+    "userPhone1_domestic": "03",
+    "userPhone2_domestic": "1234",
+    "userPhone3_domestic": "5678",
+    "userPostal1_domestic": "100",
+    "userPostal2_domestic": "0001",
+    "userPrefecture_domestic": "13",
+    "userCity_domestic": "千代田区丸の内",
+    "userStreet_domestic": "1-2-3 丸の内ビル5階"
+  }
+}
