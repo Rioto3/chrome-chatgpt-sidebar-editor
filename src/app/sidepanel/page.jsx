@@ -9,7 +9,7 @@ const SidepanelAsPage = () => {
   const [editingBookmark, setEditingBookmark] = useState(null);
   const [editingValue, setEditingValue] = useState("");
 
-  // ====== 初期化 ======
+  // ===== 初期化 =====
   useEffect(() => {
     try {
       const stored = localStorage.getItem("bookmarksState");
@@ -18,7 +18,6 @@ const SidepanelAsPage = () => {
         if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
           throw new Error("invalid structure");
         }
-        // defaultフォルダ保証
         if (!parsed.default)
           parsed.default = { name: "お気に入り", items: [] };
         setFolders(parsed);
@@ -38,22 +37,20 @@ const SidepanelAsPage = () => {
     if (storedPrompt) setPromptText(storedPrompt);
   }, []);
 
-  // ====== 保存 ======
   const saveState = (newFolders) => {
     setFolders(newFolders);
     localStorage.setItem("bookmarksState", JSON.stringify(newFolders));
   };
 
-  // ====== フォルダ操作 ======
+  // ===== フォルダ操作 =====
   const addFolder = () => {
-    // Manifest V3対策でsetTimeoutを使う
     setTimeout(() => {
       const name = prompt("新しいフォルダ名を入力してください");
       if (!name) return;
       const id = Date.now().toString();
       const newFolders = { ...folders, [id]: { name, items: [] } };
       saveState(newFolders);
-      setCurrentFolder(id); // 新フォルダを即選択
+      setCurrentFolder(id);
     }, 10);
   };
 
@@ -73,9 +70,7 @@ const SidepanelAsPage = () => {
     const folder = folders[currentFolder];
     if (!folder) return;
     setTimeout(() => {
-      if (
-        !confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)
-      )
+      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`))
         return;
       const newFolders = { ...folders };
       delete newFolders[currentFolder];
@@ -85,7 +80,7 @@ const SidepanelAsPage = () => {
     }, 10);
   };
 
-  // ====== ブックマーク操作 ======
+  // ===== ブックマーク操作 =====
   const addBookmark = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
@@ -139,7 +134,7 @@ const SidepanelAsPage = () => {
     saveState(newFolders);
   };
 
-  // ====== 並び替え ======
+  // ===== 並び替え =====
   const onDragEnd = (result) => {
     if (!result.destination) return;
     const { source, destination } = result;
@@ -157,14 +152,8 @@ const SidepanelAsPage = () => {
     }
   };
 
-  // ====== プロンプト送信 ======
-  const handlePromptChange = (e) => {
-    const value = e.target.value;
-    setPromptText(value);
-    localStorage.setItem("prompt", value);
-  };
-
-  const handleSend = () => {
+  // ===== Chat送信 =====
+  const sendPrompt = (clearAfter = false) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
       if (!tab?.id) return;
@@ -172,16 +161,30 @@ const SidepanelAsPage = () => {
         type: "SEND_PROMPT",
         payload: promptText,
       });
+      if (clearAfter) {
+        setPromptText("");
+        localStorage.setItem("prompt", "");
+      }
     });
   };
 
-  const handleSendAndClear = () => {
-    handleSend();
-    setPromptText("");
-    localStorage.setItem("prompt", "");
+  const handlePromptChange = (e) => {
+    const value = e.target.value;
+    setPromptText(value);
+    localStorage.setItem("prompt", value);
   };
 
-  // ====== UI構成 ======
+  // ===== キーボードショートカット =====
+const handleKeyDown = (e) => {
+  if (e.metaKey && e.key === "Enter") {
+    e.preventDefault();
+    if (e.shiftKey) sendPrompt(true); // ⌘+Shift+Enter → 送信して消す
+    else sendPrompt(false);           // ⌘+Enter → 送信のみ
+  }
+};
+
+
+  // ===== UI =====
   return (
     <div
       style={{
@@ -192,7 +195,7 @@ const SidepanelAsPage = () => {
         fontFamily: "sans-serif",
       }}
     >
-      {/* 上部：お気に入り一覧 */}
+      {/* 上部：お気に入り */}
       <div
         style={{
           flex: "1 1 auto",
@@ -283,15 +286,11 @@ const SidepanelAsPage = () => {
                           </a>
                         )}
 
-                        <button
-                          onClick={() => startEditing(bm.id, bm.name)}
-                          title="名前変更"
-                        >
+                        <button onClick={() => startEditing(bm.id, bm.name)}>
                           ✏️
                         </button>
                         <button
                           onClick={() => deleteBookmark(currentFolder, index)}
-                          title="削除"
                         >
                           🗑
                         </button>
@@ -306,7 +305,7 @@ const SidepanelAsPage = () => {
         </DragDropContext>
       </div>
 
-      {/* 下部：チャット入力欄（sticky固定） */}
+      {/* 下部：チャット入力（sticky固定） */}
       <div
         style={{
           position: "sticky",
@@ -329,14 +328,15 @@ const SidepanelAsPage = () => {
           }}
           value={promptText}
           onChange={handlePromptChange}
-          placeholder="プロンプトを入力..."
+          onKeyDown={handleKeyDown}
+          placeholder="⌘+Enterで送信、⌘+Shift+Enterで送信して消す"
         />
         <div style={{ display: "flex", gap: "0.4rem" }}>
-          <button style={{ flex: 1 }} onClick={handleSend}>
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
             ✈️ 送信
           </button>
-          <button style={{ flex: 1 }} onClick={handleSendAndClear}>
-            🧹 クリア
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>
+            ✈️ 送信して消す
           </button>
         </div>
       </div>
@@ -344,7 +344,6 @@ const SidepanelAsPage = () => {
   );
 };
 
-// ====== 起動処理 ======
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("root");
   if (container) {
