@@ -5,33 +5,87 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 const SidepanelAsPage = () => {
   const [folders, setFolders] = useState({});
   const [currentFolder, setCurrentFolder] = useState("default");
-  const [prompt, setPrompt] = useState("");
+  const [promptText, setPromptText] = useState("");
+  const [editingBookmark, setEditingBookmark] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
 
+  // ====== 初期化 ======
   useEffect(() => {
-    const stored = localStorage.getItem("bookmarksState");
-    if (stored) {
-      setFolders(JSON.parse(stored));
-    } else {
-      setFolders({ default: { name: "お気に入り", items: [] } });
+    try {
+      const stored = localStorage.getItem("bookmarksState");
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
+          throw new Error("invalid structure");
+        }
+        // defaultフォルダ保証
+        if (!parsed.default)
+          parsed.default = { name: "お気に入り", items: [] };
+        setFolders(parsed);
+      } else {
+        const base = { default: { name: "お気に入り", items: [] } };
+        setFolders(base);
+        localStorage.setItem("bookmarksState", JSON.stringify(base));
+      }
+    } catch (e) {
+      console.warn("💡ブックマーク初期化を再構築:", e);
+      const base = { default: { name: "お気に入り", items: [] } };
+      setFolders(base);
+      localStorage.setItem("bookmarksState", JSON.stringify(base));
     }
 
     const storedPrompt = localStorage.getItem("prompt");
-    if (storedPrompt) setPrompt(storedPrompt);
+    if (storedPrompt) setPromptText(storedPrompt);
   }, []);
 
+  // ====== 保存 ======
   const saveState = (newFolders) => {
     setFolders(newFolders);
     localStorage.setItem("bookmarksState", JSON.stringify(newFolders));
   };
 
+  // ====== フォルダ操作 ======
   const addFolder = () => {
-    const name = prompt("フォルダ名を入力してください");
-    if (!name) return;
-    const id = Date.now().toString();
-    const newFolders = { ...folders, [id]: { name, items: [] } };
-    saveState(newFolders);
+    // Manifest V3対策でsetTimeoutを使う
+    setTimeout(() => {
+      const name = prompt("新しいフォルダ名を入力してください");
+      if (!name) return;
+      const id = Date.now().toString();
+      const newFolders = { ...folders, [id]: { name, items: [] } };
+      saveState(newFolders);
+      setCurrentFolder(id); // 新フォルダを即選択
+    }, 10);
   };
 
+  const renameFolder = () => {
+    const folder = folders[currentFolder];
+    if (!folder) return;
+    setTimeout(() => {
+      if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
+      const newName = prompt("新しいフォルダ名を入力してください", folder.name);
+      if (!newName) return;
+      const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
+      saveState(updated);
+    }, 10);
+  };
+
+  const deleteFolder = () => {
+    const folder = folders[currentFolder];
+    if (!folder) return;
+    setTimeout(() => {
+      if (
+        !confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)
+      )
+        return;
+      const newFolders = { ...folders };
+      delete newFolders[currentFolder];
+      const fallback = Object.keys(newFolders)[0] || "default";
+      setCurrentFolder(fallback);
+      saveState(newFolders);
+    }, 10);
+  };
+
+  // ====== ブックマーク操作 ======
   const addBookmark = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
@@ -51,6 +105,41 @@ const SidepanelAsPage = () => {
     });
   };
 
+  const startEditing = (id, name) => {
+    setEditingBookmark(id);
+    setEditingValue(name);
+  };
+
+  const commitEditing = (folderId) => {
+    if (!editingBookmark) return;
+    const updatedFolder = { ...folders[folderId] };
+    const idx = updatedFolder.items.findIndex((b) => b.id === editingBookmark);
+    if (idx !== -1) {
+      updatedFolder.items[idx].name =
+        editingValue.trim() || updatedFolder.items[idx].name;
+      const newFolders = { ...folders, [folderId]: updatedFolder };
+      saveState(newFolders);
+    }
+    setEditingBookmark(null);
+    setEditingValue("");
+  };
+
+  const cancelEditing = () => {
+    setEditingBookmark(null);
+    setEditingValue("");
+  };
+
+  const deleteBookmark = (folderId, index) => {
+    const folder = folders[folderId];
+    const updatedItems = folder.items.filter((_, i) => i !== index);
+    const newFolders = {
+      ...folders,
+      [folderId]: { ...folder, items: updatedItems },
+    };
+    saveState(newFolders);
+  };
+
+  // ====== 並び替え ======
   const onDragEnd = (result) => {
     if (!result.destination) return;
     const { source, destination } = result;
@@ -65,35 +154,13 @@ const SidepanelAsPage = () => {
         [source.droppableId]: { ...folder, items: reordered },
       };
       saveState(newFolders);
-    } else {
-      const srcFolder = folders[source.droppableId];
-      const dstFolder = folders[destination.droppableId];
-      const srcItems = Array.from(srcFolder.items);
-      const dstItems = Array.from(dstFolder.items);
-      const [moved] = srcItems.splice(source.index, 1);
-      dstItems.splice(destination.index, 0, moved);
-      const newFolders = {
-        ...folders,
-        [source.droppableId]: { ...srcFolder, items: srcItems },
-        [destination.droppableId]: { ...dstFolder, items: dstItems },
-      };
-      saveState(newFolders);
     }
   };
 
-  const deleteBookmark = (folderId, index) => {
-    const folder = folders[folderId];
-    const updatedItems = folder.items.filter((_, i) => i !== index);
-    const newFolders = {
-      ...folders,
-      [folderId]: { ...folder, items: updatedItems },
-    };
-    saveState(newFolders);
-  };
-
+  // ====== プロンプト送信 ======
   const handlePromptChange = (e) => {
     const value = e.target.value;
-    setPrompt(value);
+    setPromptText(value);
     localStorage.setItem("prompt", value);
   };
 
@@ -101,40 +168,50 @@ const SidepanelAsPage = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tab = tabs[0];
       if (!tab?.id) return;
-      chrome.tabs.sendMessage(tab.id, { type: "SEND_PROMPT", payload: prompt });
+      chrome.tabs.sendMessage(tab.id, {
+        type: "SEND_PROMPT",
+        payload: promptText,
+      });
     });
   };
 
   const handleSendAndClear = () => {
     handleSend();
-    setPrompt("");
+    setPromptText("");
     localStorage.setItem("prompt", "");
   };
 
+  // ====== UI構成 ======
   return (
     <div
       style={{
+        height: "100vh",
         display: "flex",
         flexDirection: "column",
-        height: "100vh",
-        overflow: "hidden", // ✅ 全体スクロール禁止
+        overflow: "hidden",
         fontFamily: "sans-serif",
       }}
     >
-      {/* 上段: お気に入りセクション（60%） */}
+      {/* 上部：お気に入り一覧 */}
       <div
         style={{
-          flex: "6 1 0%",
-          overflowY: "auto", // ✅ 上段のみスクロール
-          borderBottom: "1px solid #ccc",
+          flex: "1 1 auto",
+          overflowY: "auto",
           padding: "0.5rem",
         }}
       >
-        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 8 }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            marginBottom: "0.5rem",
+          }}
+        >
           <select
-            value={currentFolder}
+            value={currentFolder in folders ? currentFolder : "default"}
             onChange={(e) => setCurrentFolder(e.target.value)}
-            style={{ flex: 1, marginRight: 8 }}
+            style={{ flex: 1 }}
           >
             {Object.entries(folders).map(([id, folder]) => (
               <option key={id} value={id}>
@@ -143,6 +220,8 @@ const SidepanelAsPage = () => {
             ))}
           </select>
           <button onClick={addFolder}>📁</button>
+          <button onClick={renameFolder}>✏️</button>
+          <button onClick={deleteFolder}>🗑</button>
           <button onClick={addBookmark}>➕</button>
         </div>
 
@@ -169,24 +248,50 @@ const SidepanelAsPage = () => {
                           ...provided.draggableProps.style,
                         }}
                       >
-                        <a
-                          href={bm.url}
-                          target="_blank"
-                          rel="noreferrer"
-                          style={{
-                            textDecoration: "none",
-                            color: "#007bff",
-                            flexGrow: 1,
-                            overflow: "hidden",
-                            textOverflow: "ellipsis",
-                            whiteSpace: "nowrap",
-                          }}
+                        {editingBookmark === bm.id ? (
+                          <input
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onBlur={() => commitEditing(currentFolder)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                commitEditing(currentFolder);
+                              if (e.key === "Escape") cancelEditing();
+                            }}
+                            autoFocus
+                            style={{
+                              flexGrow: 1,
+                              fontSize: "13px",
+                              padding: "2px 4px",
+                            }}
+                          />
+                        ) : (
+                          <a
+                            href={bm.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              textDecoration: "none",
+                              color: "#007bff",
+                              flexGrow: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {bm.name}
+                          </a>
+                        )}
+
+                        <button
+                          onClick={() => startEditing(bm.id, bm.name)}
+                          title="名前変更"
                         >
-                          {bm.name}
-                        </a>
+                          ✏️
+                        </button>
                         <button
                           onClick={() => deleteBookmark(currentFolder, index)}
-                          style={{ marginLeft: 4 }}
+                          title="削除"
                         >
                           🗑
                         </button>
@@ -201,30 +306,32 @@ const SidepanelAsPage = () => {
         </DragDropContext>
       </div>
 
-      {/* 下段: チャットセクション（40%） */}
+      {/* 下部：チャット入力欄（sticky固定） */}
       <div
         style={{
-          flex: "4 1 0%",
+          position: "sticky",
+          bottom: 0,
+          background: "#fafafa",
+          padding: "0.5rem",
+          boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
           display: "flex",
           flexDirection: "column",
-          padding: "0.5rem",
-          background: "#fafafa",
         }}
       >
         <textarea
           style={{
-            flexGrow: 1,
             width: "100%",
+            height: "6rem",
             resize: "none",
             fontSize: "13px",
             fontFamily: "monospace",
-            marginBottom: "0.5rem",
+            marginBottom: "0.4rem",
           }}
-          value={prompt}
+          value={promptText}
           onChange={handlePromptChange}
           placeholder="プロンプトを入力..."
         />
-        <div style={{ display: "flex", justifyContent: "space-between", gap: "0.5rem" }}>
+        <div style={{ display: "flex", gap: "0.4rem" }}>
           <button style={{ flex: 1 }} onClick={handleSend}>
             ✈️ 送信
           </button>
@@ -237,6 +344,7 @@ const SidepanelAsPage = () => {
   );
 };
 
+// ====== 起動処理 ======
 document.addEventListener("DOMContentLoaded", () => {
   const container = document.getElementById("root");
   if (container) {
