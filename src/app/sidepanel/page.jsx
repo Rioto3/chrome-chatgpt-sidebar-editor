@@ -325,7 +325,7 @@ const SidepanelAsPage = () => {
         <textarea
           style={{
             width: "100%",
-            height: "6rem",
+            height: "9rem",
             resize: "none",
             fontSize: "16px",
             fontFamily: "monospace",
