@@ -327,7 +327,7 @@ const SidepanelAsPage = () => {
             width: "100%",
             height: "6rem",
             resize: "none",
-            fontSize: "13px",
+            fontSize: "16px",
             fontFamily: "monospace",
             marginBottom: "0.4rem",
           }}
