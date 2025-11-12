@@ -1,38 +1,33 @@
 {
   "manifest_version": 3,
-  "name": "chrome-chatgpt-sidebar-editor",
-  "version": "{placeholder}",
-  "description": "chrome-chatgpt-sidebar-editor",
-  
+  "name": "chatgpt-sidebar-editor",
+  "version": "1.0.0",
+  "description": "ChatGPTにサイドバーからプロンプト送信",
+  "permissions": ["activeTab", "storage", "tabs"],
+  "host_permissions": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
+
+  "sidebar_action": {
+    "default_panel": "sidepanel.html",
+    "default_title": "ChatGPTエディタ",
+    "default_icon": {
+      "16": "icon-16x16.png",
+      "32": "icon-32x32.png",
+      "48": "icon-48x48.png",
+      "128": "icon-128x128.png"
+    }
+  },
+
   "icons": {
     "16": "icon-16x16.png",
     "32": "icon-32x32.png",
     "48": "icon-48x48.png",
     "128": "icon-128x128.png"
   },
-  
-  "permissions": [
-    "activeTab",
-    "storage",
-    "tabs"
-  ],
-  
-  "host_permissions": [
-    "https://chat.openai.com/*"
-  ],
-  
-  "action": {
-    "default_title": "chrome-chatgpt-sidebar-editor"
-  },
-  
-  "side_panel": {
-    "default_path": "sidepanel.html"
-    },
+
   "content_scripts": [
     {
       "matches": ["https://chat.openai.com/*", "https://chatgpt.com/*"],
       "js": ["content.js"]
     }
   ]
-
 }
