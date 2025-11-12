@@ -15,29 +15,15 @@
     "sidePanel",
     "activeTab",
     "storage",
-    "tabs",
-    "scripting",
-    "identity",
-    "identity.email"
+    "tabs"
   ],
   
   "host_permissions": [
-    "https://sheets.googleapis.com/*",
-    "<all_urls>"
+    "https://chat.openai.com/*"
   ],
   
-  "oauth2": {
-    "client_id": "{placeholder}",
-    "scopes": [
-      "https://www.googleapis.com/auth/spreadsheets.readonly",
-      "https://www.googleapis.com/auth/userinfo.email",
-      "https://www.googleapis.com/auth/userinfo.profile",
-      "openid"
-    ]
-  },
-
   "action": {
-    "default_title": "送Rail"
+    "default_title": "chrome-chatgpt-sidebar-editor"
   },
   
   "side_panel": {
