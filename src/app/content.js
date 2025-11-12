@@ -1,26 +1,65 @@
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "SEND_PROMPT") {
-    const text = message.payload;
+  if (message.type === 'SEND_PROMPT') {
+    const promptText = message.payload;
 
-    console.log("[content.js] 送信リクエスト受信:", text);
+    // 現時点の DOM 構造を確認
+    const inputBox = document.querySelector('.ProseMirror#prompt-textarea, [contenteditable="true"][data-virtualkeyboard="true"]');
+    const sendButton = document.querySelector('#composer-submit-button, [data-testid="send-button"]');
 
-    // ChatGPTの入力欄を探す（ProseMirror）
-    const input = document.querySelector('.ProseMirror');
-    const sendBtn = document.querySelector('#composer-submit-button');
+    // 状況ログを alert で出す
+    alert([
+      `=== ChatGPT送信デバッグ ===`,
+      `入力欄: ${inputBox ? '✅ 見つかった' : '❌ 見つからない'}`,
+      `送信ボタン: ${sendButton ? '✅ 見つかった' : '❌ 見つからない'}`,
+      `promptText: "${promptText}"`,
+      `inputBox=${inputBox ? inputBox.outerHTML.slice(0, 200) + '…' : 'null'}`,
+      `sendButton=${sendButton ? sendButton.outerHTML.slice(0, 200) + '…' : 'null'}`,
+    ].join('\n'));
 
-    if (input && sendBtn) {
-      // 入力欄にテキストを挿入（document.execCommandは古典的だけど有効）
-      input.focus();
-      document.execCommand('selectAll', false, null); // 既存テキストがあれば選択
-      document.execCommand('insertText', false, text); // テキストを挿入
-
-      // 少し待ってから送信（DOM更新を待つ）
-      setTimeout(() => {
-        sendBtn.click();
-        console.log("[content.js] 送信ボタンをクリックしました");
-      }, 100);
-    } else {
-      console.warn("[content.js] 入力欄または送信ボタンが見つかりません");
+    if (!inputBox) {
+      alert('❌ 入力欄が見つかりません。');
+      return;
     }
+
+    // 一応送信まで試す流れ（空文字ではボタンが出ない可能性あり）
+    inputBox.focus();
+
+    inputBox.dispatchEvent(new InputEvent('beforeinput', {
+      bubbles: true,
+      cancelable: true,
+      inputType: 'insertText',
+      data: ' ',
+    }));
+
+    inputBox.innerHTML = `<p>${promptText}</p>`;
+    inputBox.dispatchEvent(new InputEvent('input', {
+      bubbles: true,
+      cancelable: true,
+      inputType: 'insertText',
+      data: promptText,
+    }));
+
+    // ボタン待機
+    const waitForSendButton = async (timeout = 3000) => {
+      const start = Date.now();
+      return new Promise((resolve, reject) => {
+        const check = () => {
+          const btn = document.querySelector('#composer-submit-button, [data-testid="send-button"]');
+          if (btn) return resolve(btn);
+          if (Date.now() - start > timeout) return reject(new Error('送信ボタンが出てこない'));
+          requestAnimationFrame(check);
+        };
+        check();
+      });
+    };
+
+    waitForSendButton()
+      .then((btn) => {
+        alert('✅ 送信ボタン検出！クリックします。');
+        btn.click();
+      })
+      .catch((err) => {
+        alert(`⚠️ 送信ボタン検出失敗: ${err.message}`);
+      });
   }
 });
