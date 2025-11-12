@@ -11,35 +11,22 @@ const SidepanelAsPage = () => {
 
   // ===== 初期化 =====
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem("bookmarksState");
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (!parsed || Array.isArray(parsed) || typeof parsed !== "object") {
-          throw new Error("invalid structure");
-        }
-        if (!parsed.default)
-          parsed.default = { name: "お気に入り", items: [] };
-        setFolders(parsed);
+    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
+      if (data.bookmarksState) {
+        setFolders(data.bookmarksState);
       } else {
         const base = { default: { name: "お気に入り", items: [] } };
         setFolders(base);
-        localStorage.setItem("bookmarksState", JSON.stringify(base));
+        chrome.storage.local.set({ bookmarksState: base });
       }
-    } catch (e) {
-      console.warn("💡ブックマーク初期化を再構築:", e);
-      const base = { default: { name: "お気に入り", items: [] } };
-      setFolders(base);
-      localStorage.setItem("bookmarksState", JSON.stringify(base));
-    }
 
-    const storedPrompt = localStorage.getItem("prompt");
-    if (storedPrompt) setPromptText(storedPrompt);
+      if (data.prompt) setPromptText(data.prompt);
+    });
   }, []);
 
   const saveState = (newFolders) => {
     setFolders(newFolders);
-    localStorage.setItem("bookmarksState", JSON.stringify(newFolders));
+    chrome.storage.local.set({ bookmarksState: newFolders });
   };
 
   // ===== フォルダ操作 =====
@@ -70,8 +57,7 @@ const SidepanelAsPage = () => {
     const folder = folders[currentFolder];
     if (!folder) return;
     setTimeout(() => {
-      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`))
-        return;
+      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
       const newFolders = { ...folders };
       delete newFolders[currentFolder];
       const fallback = Object.keys(newFolders)[0] || "default";
@@ -163,7 +149,7 @@ const SidepanelAsPage = () => {
       });
       if (clearAfter) {
         setPromptText("");
-        localStorage.setItem("prompt", "");
+        chrome.storage.local.set({ prompt: "" });
       }
     });
   };
@@ -171,18 +157,17 @@ const SidepanelAsPage = () => {
   const handlePromptChange = (e) => {
     const value = e.target.value;
     setPromptText(value);
-    localStorage.setItem("prompt", value);
+    chrome.storage.local.set({ prompt: value });
   };
 
   // ===== キーボードショートカット =====
-const handleKeyDown = (e) => {
-  if (e.metaKey && e.key === "Enter") {
-    e.preventDefault();
-    if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter → 送信のみ
-    else sendPrompt(true);             // ⌘+Enter → 送信して消す
-  }
-};
-
+  const handleKeyDown = (e) => {
+    if (e.metaKey && e.key === "Enter") {
+      e.preventDefault();
+      if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter → 送信のみ
+      else sendPrompt(true);             // ⌘+Enter → 送信して消す
+    }
+  };
 
   // ===== UI =====
   return (
@@ -286,14 +271,8 @@ const handleKeyDown = (e) => {
                           </a>
                         )}
 
-                        <button onClick={() => startEditing(bm.id, bm.name)}>
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => deleteBookmark(currentFolder, index)}
-                        >
-                          🗑
-                        </button>
+                        <button onClick={() => startEditing(bm.id, bm.name)}>✏️</button>
+                        <button onClick={() => deleteBookmark(currentFolder, index)}>🗑</button>
                       </div>
                     )}
                   </Draggable>
@@ -332,12 +311,8 @@ const handleKeyDown = (e) => {
           placeholder="⌘+Enterで送信、⌘+Shift+Enterで送信して消す"
         />
         <div style={{ display: "flex", gap: "0.4rem" }}>
-          <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
-            ✈️ 送信
-          </button>
-          <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>
-            ✈️ 送信して消す
-          </button>
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>✈️ 送信</button>
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>✈️ 送信して消す</button>
         </div>
       </div>
     </div>
