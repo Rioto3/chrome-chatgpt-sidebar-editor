@@ -23,7 +23,7 @@ const SidepanelAsPage = () => {
     navigator.clipboard.writeText(prompt);
   };
 
-  const sendToChatGPT = () => {
+  const sendToChatGPT = (text) => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
       const tabId = tabs[0].id;
 
@@ -46,20 +46,57 @@ const SidepanelAsPage = () => {
             }
           }, 100);
         },
-        args: [prompt],
+        args: [text],
       });
     });
   };
 
-  const addCurrentChat = () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const url = tabs[0]?.url || 'unknown';
-      const newEntry = { name: '新しいお気に入り', url };
-      const updated = [...bookmarks, newEntry];
-      setBookmarks(updated);
-      localStorage.setItem('bookmarks', JSON.stringify(updated));
-    });
+  const handleSend = () => {
+    sendToChatGPT(prompt);
   };
+
+  const handleSendAndClear = () => {
+    sendToChatGPT(prompt);
+    setPrompt('');
+    localStorage.setItem('prompt', '');
+  };
+
+const addCurrentChat = () => {
+  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+    const tab = tabs[0];
+    const url = tab?.url || 'unknown';
+    const tabId = tab?.id;
+
+    chrome.scripting.executeScript(
+      {
+        target: { tabId },
+        func: (currentUrl) => {
+          try {
+            const path = new URL(currentUrl).pathname;
+            const historyLinks = document.querySelectorAll('#history a[href]');
+            for (const a of historyLinks) {
+              if (a.getAttribute('href') === path) {
+                const title = a.querySelector('span[dir="auto"]');
+                return title?.innerText || null;
+              }
+            }
+            return null;
+          } catch (err) {
+            return null;
+          }
+        },
+        args: [url],
+      },
+      (results) => {
+        const title = results?.[0]?.result || '新しいお気に入り';
+        const newEntry = { name: title, url };
+        const updated = [...bookmarks, newEntry];
+        setBookmarks(updated);
+        localStorage.setItem('bookmarks', JSON.stringify(updated));
+      }
+    );
+  });
+};
 
   const renameBookmark = (index) => {
     const newName = prompt('新しい名前を入力してください');
@@ -107,15 +144,15 @@ const SidepanelAsPage = () => {
         onChange={handlePromptChange}
         placeholder="プロンプトをここに書いて保存できます"
       />
-      <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem' }}>
+      <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
         <button onClick={handleCopy}>📋 コピー</button>
-        <button onClick={sendToChatGPT}>✈️ 送信</button>
+        <button onClick={handleSend}>✈️ 送信</button>
+        <button onClick={handleSendAndClear}>🧹 送信してクリア</button>
       </div>
     </div>
   );
 };
 
-// マウント
 document.addEventListener('DOMContentLoaded', () => {
   const container = document.getElementById('root');
   if (container) {
