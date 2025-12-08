@@ -1,33 +1,61 @@
-import { createGroup, updateGroup, deleteGroup, fetchServerState } from "./sync.js";
+// src/app/background/route.js
+import { GroupSync, ItemSync } from "./sync.js";
 
-// 初回起動時にサーバから同期
-chrome.runtime.onStartup.addListener(async () => {
-  console.log("[BG] Chrome起動: サーバ同期を開始します");
-  await fetchServerState();
-});
+// インスタンス化
+const groupSync = new GroupSync();
+const itemSync = new ItemSync();
 
-chrome.runtime.onInstalled.addListener(async () => {
-  console.log("[BG] 拡張初回インストール: サーバ同期を開始します");
-  await fetchServerState();
-});
+console.log("[BG] Background route initialized.");
 
-// === メッセージルータ ===
+// === メッセージルーター ===
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  console.log("[BG] Message received:", message.type);
+  console.log("[BG] Message received:", message.type, message.payload);
 
-  switch (message.type) {
-    case "SYNC_CREATE":
-      createGroup(message.payload);
-      break;
-    case "SYNC_UPDATE":
-      updateGroup(message.payload.id, message.payload.data);
-      break;
-    case "SYNC_DELETE":
-      deleteGroup(message.payload.id);
-      break;
-    default:
-      console.warn("[BG] Unknown message:", message.type);
-  }
+  (async () => {
+    try {
+      switch (message.type) {
+        // === Group ===
+        case "GROUP_CREATE":
+          await groupSync.create(message.payload);
+          break;
+        case "GROUP_READ":
+          const g = await groupSync.read(message.payload.id);
+          sendResponse({ ok: true, data: g });
+          return; // 非同期レスポンス
 
-  sendResponse({ ok: true });
+        case "GROUP_UPDATE":
+          await groupSync.update(message.payload.id, message.payload.data);
+          break;
+        case "GROUP_DELETE":
+          await groupSync.delete(message.payload.id);
+          break;
+
+        // === Item ===
+        case "ITEM_CREATE":
+          await itemSync.create(message.payload.groupId, message.payload.item);
+          break;
+        case "ITEM_UPDATE":
+          await itemSync.update(
+            message.payload.groupId,
+            message.payload.itemId,
+            message.payload.data
+          );
+          break;
+        case "ITEM_DELETE":
+          await itemSync.delete(message.payload.groupId, message.payload.itemId);
+          break;
+
+        default:
+          console.warn("[BG] Unknown message type:", message.type);
+      }
+
+      sendResponse({ ok: true });
+    } catch (err) {
+      console.error("[BG] Error:", err);
+      sendResponse({ ok: false, error: err.message });
+    }
+  })();
+
+  // 非同期応答を許可
+  return true;
 });

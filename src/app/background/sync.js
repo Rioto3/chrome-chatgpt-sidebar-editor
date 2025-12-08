@@ -1,69 +1,121 @@
-// src/app/backgtound/sync.js
+// src/app/background/sync.js
 const API_BASE = "https://ik1-402-33203.vs.sakura.ne.jp:3219/bookmarksState";
 
-/**
- * 新しいフォルダ（bookmarksState配下のgroup）を追加
- */
-export async function createGroup(group) {
-  try {
-    await fetch(API_BASE, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(group),
-    });
-    console.log("✅ group created:", group.name);
-  } catch (err) {
-    console.error("❌ createGroup failed:", err);
+export class GroupSync {
+  async create(group) {
+    try {
+      const res = await fetch(API_BASE, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(group),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      console.log("✅ Group created:", group.id);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ Group create failed:", err);
+    }
+  }
+
+  async read(id) {
+    try {
+      const res = await fetch(`${API_BASE}/${id}`);
+      if (!res.ok) throw new Error(await res.text());
+      return await res.json();
+    } catch (err) {
+      console.error("❌ Group read failed:", err);
+    }
+  }
+
+  async update(id, data) {
+    try {
+      const res = await fetch(`${API_BASE}/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(await res.text());
+      console.log("🔁 Group updated:", id);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ Group update failed:", err);
+    }
+  }
+
+  async delete(id) {
+    try {
+      const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(await res.text());
+      console.log("🗑 Group deleted:", id);
+    } catch (err) {
+      console.error("❌ Group delete failed:", err);
+    }
   }
 }
 
-/**
- * 既存グループの更新（リネーム・items変更）
- */
-export async function updateGroup(groupId, updatedData) {
-  try {
-    await fetch(`${API_BASE}/${groupId}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(updatedData),
-    });
-    console.log("🔁 group updated:", groupId);
-  } catch (err) {
-    console.error("❌ updateGroup failed:", err);
+
+
+export class ItemSync {
+  async create(groupId, item) {
+    try {
+      const groupRes = await fetch(`${API_BASE}/${groupId}`);
+      if (!groupRes.ok) throw new Error("Group not found");
+      const group = await groupRes.json();
+
+      group.items.push(item);
+
+      const res = await fetch(`${API_BASE}/${groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: group.items }),
+      });
+
+      if (!res.ok) throw new Error(await res.text());
+      console.log("✅ Item added to group:", groupId);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ Item create failed:", err);
+    }
   }
-}
 
-/**
- * グループ削除
- */
-export async function deleteGroup(groupId) {
-  try {
-    await fetch(`${API_BASE}/${groupId}`, {
-      method: "DELETE",
-    });
-    console.log("🗑 group deleted:", groupId);
-  } catch (err) {
-    console.error("❌ deleteGroup failed:", err);
+  async update(groupId, itemId, newData) {
+    try {
+      const groupRes = await fetch(`${API_BASE}/${groupId}`);
+      const group = await groupRes.json();
+
+      const updatedItems = group.items.map((it) =>
+        it.id === itemId ? { ...it, ...newData } : it
+      );
+
+      const res = await fetch(`${API_BASE}/${groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: updatedItems }),
+      });
+
+      console.log("🔁 Item updated:", itemId);
+      return await res.json();
+    } catch (err) {
+      console.error("❌ Item update failed:", err);
+    }
   }
-}
 
+  async delete(groupId, itemId) {
+    try {
+      const groupRes = await fetch(`${API_BASE}/${groupId}`);
+      const group = await groupRes.json();
 
+      const filteredItems = group.items.filter((it) => it.id !== itemId);
 
-/** 🔁 サーバから状態を取得して chrome.storage.local に反映 */
-export async function fetchServerState() {
-  try {
-    const res = await fetch(API_BASE);
-    const data = await res.json();
-    if (!Array.isArray(data)) return;
+      await fetch(`${API_BASE}/${groupId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ items: filteredItems }),
+      });
 
-    const mapped = {};
-    data.forEach((group) => {
-      mapped[group.id] = { name: group.name, items: group.items || [] };
-    });
-
-    await chrome.storage.local.set({ bookmarksState: mapped });
-    console.log("✅ サーバからローカルへ初期同期しました:", Object.keys(mapped).length, "件");
-  } catch (err) {
-    console.error("❌ サーバ同期失敗:", err);
+      console.log("🗑 Item deleted:", itemId);
+    } catch (err) {
+      console.error("❌ Item delete failed:", err);
+    }
   }
 }
