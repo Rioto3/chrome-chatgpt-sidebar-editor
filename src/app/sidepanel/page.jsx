@@ -54,6 +54,7 @@ const SidepanelAsPage = () => {
 
 
   // ===== 初期化 =====
+
   useEffect(() => {
     chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
       if (data.bookmarksState) {
@@ -63,23 +64,9 @@ const SidepanelAsPage = () => {
         setFolders(base);
         chrome.storage.local.set({ bookmarksState: base });
       }
-
       if (data.prompt) setPromptText(data.prompt);
     });
   }, []);
-
-  useEffect(() => {
-  chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
-    if (data.bookmarksState) {
-      setFolders(data.bookmarksState);
-    } else {
-      const base = { default: { name: "お気に入り", items: [] } };
-      setFolders(base);
-      chrome.storage.local.set({ bookmarksState: base });
-    }
-    if (data.prompt) setPromptText(data.prompt);
-  });
-}, []);
 
 
   const saveState = (newFolders) => {
@@ -91,8 +78,8 @@ const SidepanelAsPage = () => {
       const current = newFolders[currentFolder];
       if (current) {
         chrome.runtime.sendMessage({
-          type: "SYNC_UPDATE",
-          payload: { id: currentFolder, data: current },
+          type: "GROUP_CREATE",
+          payload: { id, name, items: [] },
         });
       }
     }
@@ -100,24 +87,24 @@ const SidepanelAsPage = () => {
 
 
   // ===== フォルダ操作 =====
-   const addFolder = () => {
-     setTimeout(() => {
-       const name = prompt("新しいフォルダ名を入力してください");
-       if (!name) return;
-       const id = Date.now().toString();
-       const newFolders = { ...folders, [id]: { name, items: [] } };
-       saveState(newFolders);
-       setCurrentFolder(id);
+  const addFolder = () => {
+    setTimeout(() => {
+      const name = prompt("新しいフォルダ名を入力してください");
+      if (!name) return;
+      const id = Date.now().toString();
+      const newFolders = { ...folders, [id]: { name, items: [] } };
+      saveState(newFolders);
+      setCurrentFolder(id);
 
       // ✅ サーバにも新規作成を通知
       if (API_SYNC) {
         chrome.runtime.sendMessage({
-          type: "SYNC_CREATE",
-          payload: { id, name, items: [] },
+          type: "GROUP_DELETE",
+          payload: { id: currentFolder },
         });
       }
-     }, 10);
-   };
+    }, 10);
+  };
 
 
   const renameFolder = () => {
@@ -134,16 +121,16 @@ const SidepanelAsPage = () => {
 
 
 
-   const deleteFolder = () => {
-     const folder = folders[currentFolder];
-     if (!folder) return;
-     setTimeout(() => {
-       if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
-       const newFolders = { ...folders };
-       delete newFolders[currentFolder];
-       const fallback = Object.keys(newFolders)[0] || "default";
-       setCurrentFolder(fallback);
-       saveState(newFolders);
+  const deleteFolder = () => {
+    const folder = folders[currentFolder];
+    if (!folder) return;
+    setTimeout(() => {
+      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
+      const newFolders = { ...folders };
+      delete newFolders[currentFolder];
+      const fallback = Object.keys(newFolders)[0] || "default";
+      setCurrentFolder(fallback);
+      saveState(newFolders);
 
       // 🗑 サーバにも削除通知
       if (API_SYNC) {
@@ -152,8 +139,8 @@ const SidepanelAsPage = () => {
           payload: { id: currentFolder },
         });
       }
-     }, 10);
-   };
+    }, 10);
+  };
 
 
 
@@ -176,6 +163,14 @@ const SidepanelAsPage = () => {
         },
       };
       saveState(updated);
+
+
+      if (API_SYNC) {
+        chrome.runtime.sendMessage({
+          type: "ITEM_CREATE",
+          payload: { groupId: currentFolder, item: newItem },
+        });
+      }
     });
   };
 
@@ -194,6 +189,17 @@ const SidepanelAsPage = () => {
       const newFolders = { ...folders, [folderId]: updatedFolder };
       saveState(newFolders);
     }
+
+    if (API_SYNC) {
+      chrome.runtime.sendMessage({
+        type: "ITEM_UPDATE",
+        payload: {
+          groupId: folderId,
+          itemId: editingBookmark,
+          data: { name: editingValue.trim() },
+        },
+      });
+    }
     setEditingBookmark(null);
     setEditingValue("");
   };
@@ -211,6 +217,14 @@ const SidepanelAsPage = () => {
       [folderId]: { ...folder, items: updatedItems },
     };
     saveState(newFolders);
+
+    if (API_SYNC) {
+      const item = folder.items[index];
+      chrome.runtime.sendMessage({
+        type: "ITEM_DELETE",
+        payload: { groupId: folderId, itemId: item.id },
+      });
+    }
   };
 
   // ===== 並び替え =====
