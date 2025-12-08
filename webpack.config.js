@@ -5,8 +5,8 @@ const path = require("path");
 const isDevelopment = process.env.NODE_ENV === 'development';
 // 1. 出力先ディレクトリを環境に応じて決定
 const outputDir = isDevelopment 
-  ? 'dist-devel' // 開発用
-  : 'dist-prod';  // 公開用 (本番環境に提出するディレクトリ)
+  ? 'dist/devel' // 開発用
+  : 'dist/prod';  // 公開用 (本番環境に提出するディレクトリ)
 
 module.exports = {
   devtool: "cheap-module-source-map", // または "source-map"

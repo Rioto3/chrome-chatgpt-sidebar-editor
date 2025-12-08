@@ -1,6 +1,8 @@
 {
   "version": "0.0.1",
   "scripts": {
+    "dev": "NODE_ENV=development webpack --watch",
+    "prod": "NODE_ENV=production",
     "dev:devel": "NODE_ENV=development webpack --watch",
     "build:devel": "NODE_ENV=development webpack",
     "build:prod": "NODE_ENV=production webpack"
