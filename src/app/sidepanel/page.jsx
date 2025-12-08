@@ -1,3 +1,4 @@
+// src/app/sidepanel/page.jsx
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
