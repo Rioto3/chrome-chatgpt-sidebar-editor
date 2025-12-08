@@ -13,9 +13,10 @@
     "https://chatgpt.com/*",
     "http://ik1-402-33203.vs.sakura.ne.jp/*"
   ],
-    "background": {
-    "service_worker": "background.js",
-    "type": "module"
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
   },
   "sidebar_action": {
     "default_panel": "sidepanel.html",
