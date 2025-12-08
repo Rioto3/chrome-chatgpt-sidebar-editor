@@ -35,7 +35,7 @@ module.exports = {
   entry: {
     settings: './src/app/settings/page.jsx',
     sidepanel: './src/app/sidepanel/page.jsx',
-    background: './src/app/backgtound/route.js',
+    background: './src/app/background/route.js',
   },
   plugins: [
     new HtmlWebpackPlugin({
