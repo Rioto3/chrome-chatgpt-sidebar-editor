@@ -1,121 +1,46 @@
-// src/app/background/sync.js
-const API_BASE = "https://ik1-402-33203.vs.sakura.ne.jp:3219/bookmarksState";
+// background/sync.js
+import { API } from "./api.js";
+import { Storage } from "./storage.js";
 
-export class GroupSync {
-  async create(group) {
-    try {
-      const res = await fetch(API_BASE, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(group),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      console.log("✅ Group created:", group.id);
-      return await res.json();
-    } catch (err) {
-      console.error("❌ Group create failed:", err);
+export const Sync = {
+  async syncToServer() {
+    const bookmarks = await Storage.getBookmarks();
+
+    console.log("🔼 Uploading local → server ...");
+
+    // グループ
+    const groups = Object.entries(bookmarks).map(([id, g]) => ({
+      id,
+      name: g.name,
+    }));
+    for (const g of groups) await API.createGroup(g);
+
+    // アイテム
+    for (const [groupId, g] of Object.entries(bookmarks)) {
+      for (const item of g.items) {
+        await API.createItem({ ...item, group_id: groupId });
+      }
     }
-  }
 
-  async read(id) {
-    try {
-      const res = await fetch(`${API_BASE}/${id}`);
-      if (!res.ok) throw new Error(await res.text());
-      return await res.json();
-    } catch (err) {
-      console.error("❌ Group read failed:", err);
+    console.log("✅ Synced local → server");
+    return true;
+  },
+
+  async syncFromServer() {
+    console.log("🔽 Downloading server → local ...");
+
+    const groups = await API.getGroups();
+    const state = {};
+
+    for (const g of groups) {
+      state[g.id] = {
+        name: g.name,
+        items: g.items || [],
+      };
     }
-  }
 
-  async update(id, data) {
-    try {
-      const res = await fetch(`${API_BASE}/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data),
-      });
-      if (!res.ok) throw new Error(await res.text());
-      console.log("🔁 Group updated:", id);
-      return await res.json();
-    } catch (err) {
-      console.error("❌ Group update failed:", err);
-    }
-  }
-
-  async delete(id) {
-    try {
-      const res = await fetch(`${API_BASE}/${id}`, { method: "DELETE" });
-      if (!res.ok) throw new Error(await res.text());
-      console.log("🗑 Group deleted:", id);
-    } catch (err) {
-      console.error("❌ Group delete failed:", err);
-    }
-  }
-}
-
-
-
-export class ItemSync {
-  async create(groupId, item) {
-    try {
-      const groupRes = await fetch(`${API_BASE}/${groupId}`);
-      if (!groupRes.ok) throw new Error("Group not found");
-      const group = await groupRes.json();
-
-      group.items.push(item);
-
-      const res = await fetch(`${API_BASE}/${groupId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: group.items }),
-      });
-
-      if (!res.ok) throw new Error(await res.text());
-      console.log("✅ Item added to group:", groupId);
-      return await res.json();
-    } catch (err) {
-      console.error("❌ Item create failed:", err);
-    }
-  }
-
-  async update(groupId, itemId, newData) {
-    try {
-      const groupRes = await fetch(`${API_BASE}/${groupId}`);
-      const group = await groupRes.json();
-
-      const updatedItems = group.items.map((it) =>
-        it.id === itemId ? { ...it, ...newData } : it
-      );
-
-      const res = await fetch(`${API_BASE}/${groupId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: updatedItems }),
-      });
-
-      console.log("🔁 Item updated:", itemId);
-      return await res.json();
-    } catch (err) {
-      console.error("❌ Item update failed:", err);
-    }
-  }
-
-  async delete(groupId, itemId) {
-    try {
-      const groupRes = await fetch(`${API_BASE}/${groupId}`);
-      const group = await groupRes.json();
-
-      const filteredItems = group.items.filter((it) => it.id !== itemId);
-
-      await fetch(`${API_BASE}/${groupId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ items: filteredItems }),
-      });
-
-      console.log("🗑 Item deleted:", itemId);
-    } catch (err) {
-      console.error("❌ Item delete failed:", err);
-    }
-  }
-}
+    await Storage.saveBookmarks(state);
+    console.log("✅ Synced server → local");
+    return state;
+  },
+};

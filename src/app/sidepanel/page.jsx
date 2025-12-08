@@ -69,42 +69,31 @@ const SidepanelAsPage = () => {
   }, []);
 
 
-  const saveState = (newFolders) => {
-    setFolders(newFolders);
-    chrome.storage.local.set({ bookmarksState: newFolders });
+const saveState = (newFolders) => {
+  setFolders(newFolders);
+  chrome.storage.local.set({ bookmarksState: newFolders });
+};
 
-    // 🔁 同期がONなら、現在のフォルダをバックグラウンドに送る
+
+const addFolder = () => {
+  setTimeout(() => {
+    const name = prompt("新しいフォルダ名を入力してください");
+    if (!name) return;
+    const id = Date.now().toString();
+    const newFolders = { ...folders, [id]: { name, items: [] } };
+    saveState(newFolders);
+    setCurrentFolder(id);
+
+    // ✅ フォルダ作成時のみサーバに通知
     if (API_SYNC) {
-      const current = newFolders[currentFolder];
-      if (current) {
-        chrome.runtime.sendMessage({
-          type: "GROUP_CREATE",
-          payload: { id, name, items: [] },
-        });
-      }
+      chrome.runtime.sendMessage({
+        type: "GROUP_CREATE",
+        payload: { id, name, items: [] },
+      });
     }
-  };
+  }, 10);
+};
 
-
-  // ===== フォルダ操作 =====
-  const addFolder = () => {
-    setTimeout(() => {
-      const name = prompt("新しいフォルダ名を入力してください");
-      if (!name) return;
-      const id = Date.now().toString();
-      const newFolders = { ...folders, [id]: { name, items: [] } };
-      saveState(newFolders);
-      setCurrentFolder(id);
-
-      // ✅ サーバにも新規作成を通知
-      if (API_SYNC) {
-        chrome.runtime.sendMessage({
-          type: "GROUP_DELETE",
-          payload: { id: currentFolder },
-        });
-      }
-    }, 10);
-  };
 
 
   const renameFolder = () => {
@@ -165,12 +154,16 @@ const SidepanelAsPage = () => {
       saveState(updated);
 
 
-      if (API_SYNC) {
-        chrome.runtime.sendMessage({
-          type: "ITEM_CREATE",
-          payload: { groupId: currentFolder, item: newItem },
-        });
-      }
+         // ✅ ここを修正
+   if (API_SYNC) {
+     chrome.runtime.sendMessage({
+       type: "ITEM_CREATE",
+       payload: {
+         groupId: currentFolder,
+         item: newItem,
+       },
+     });
+   }
     });
   };
 

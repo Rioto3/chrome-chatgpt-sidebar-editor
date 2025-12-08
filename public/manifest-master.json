@@ -11,7 +11,7 @@
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
-    "http://ik1-402-33203.vs.sakura.ne.jp/*"
+    "https://api.tubeclip.win/*"
   ],
   "background": {
     "scripts": [
