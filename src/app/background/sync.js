@@ -46,3 +46,24 @@ export async function deleteGroup(groupId) {
     console.error("❌ deleteGroup failed:", err);
   }
 }
+
+
+
+/** 🔁 サーバから状態を取得して chrome.storage.local に反映 */
+export async function fetchServerState() {
+  try {
+    const res = await fetch(API_BASE);
+    const data = await res.json();
+    if (!Array.isArray(data)) return;
+
+    const mapped = {};
+    data.forEach((group) => {
+      mapped[group.id] = { name: group.name, items: group.items || [] };
+    });
+
+    await chrome.storage.local.set({ bookmarksState: mapped });
+    console.log("✅ サーバからローカルへ初期同期しました:", Object.keys(mapped).length, "件");
+  } catch (err) {
+    console.error("❌ サーバ同期失敗:", err);
+  }
+}

@@ -3,6 +3,8 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
+const API_SYNC = true;
+
 const SidepanelAsPage = () => {
   const [folders, setFolders] = useState({});
   const [currentFolder, setCurrentFolder] = useState("default");
@@ -66,22 +68,57 @@ const SidepanelAsPage = () => {
     });
   }, []);
 
+  useEffect(() => {
+  chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
+    if (data.bookmarksState) {
+      setFolders(data.bookmarksState);
+    } else {
+      const base = { default: { name: "お気に入り", items: [] } };
+      setFolders(base);
+      chrome.storage.local.set({ bookmarksState: base });
+    }
+    if (data.prompt) setPromptText(data.prompt);
+  });
+}, []);
+
+
   const saveState = (newFolders) => {
     setFolders(newFolders);
     chrome.storage.local.set({ bookmarksState: newFolders });
+
+    // 🔁 同期がONなら、現在のフォルダをバックグラウンドに送る
+    if (API_SYNC) {
+      const current = newFolders[currentFolder];
+      if (current) {
+        chrome.runtime.sendMessage({
+          type: "SYNC_UPDATE",
+          payload: { id: currentFolder, data: current },
+        });
+      }
+    }
   };
 
+
   // ===== フォルダ操作 =====
-  const addFolder = () => {
-    setTimeout(() => {
-      const name = prompt("新しいフォルダ名を入力してください");
-      if (!name) return;
-      const id = Date.now().toString();
-      const newFolders = { ...folders, [id]: { name, items: [] } };
-      saveState(newFolders);
-      setCurrentFolder(id);
-    }, 10);
-  };
+   const addFolder = () => {
+     setTimeout(() => {
+       const name = prompt("新しいフォルダ名を入力してください");
+       if (!name) return;
+       const id = Date.now().toString();
+       const newFolders = { ...folders, [id]: { name, items: [] } };
+       saveState(newFolders);
+       setCurrentFolder(id);
+
+      // ✅ サーバにも新規作成を通知
+      if (API_SYNC) {
+        chrome.runtime.sendMessage({
+          type: "SYNC_CREATE",
+          payload: { id, name, items: [] },
+        });
+      }
+     }, 10);
+   };
+
 
   const renameFolder = () => {
     const folder = folders[currentFolder];
@@ -95,18 +132,32 @@ const SidepanelAsPage = () => {
     }, 10);
   };
 
-  const deleteFolder = () => {
-    const folder = folders[currentFolder];
-    if (!folder) return;
-    setTimeout(() => {
-      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
-      const newFolders = { ...folders };
-      delete newFolders[currentFolder];
-      const fallback = Object.keys(newFolders)[0] || "default";
-      setCurrentFolder(fallback);
-      saveState(newFolders);
-    }, 10);
-  };
+
+
+   const deleteFolder = () => {
+     const folder = folders[currentFolder];
+     if (!folder) return;
+     setTimeout(() => {
+       if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
+       const newFolders = { ...folders };
+       delete newFolders[currentFolder];
+       const fallback = Object.keys(newFolders)[0] || "default";
+       setCurrentFolder(fallback);
+       saveState(newFolders);
+
+      // 🗑 サーバにも削除通知
+      if (API_SYNC) {
+        chrome.runtime.sendMessage({
+          type: "SYNC_DELETE",
+          payload: { id: currentFolder },
+        });
+      }
+     }, 10);
+   };
+
+
+
+
 
   // ===== ブックマーク操作 =====
   const addBookmark = () => {
@@ -357,112 +408,112 @@ const SidepanelAsPage = () => {
 
 
 
-{/* 下部：チャット入力（ドラッグで高さ調整可能） */}
-<div
-  style={{
-    position: "sticky",
-    bottom: 0,
-    background: "#fafafa",
-    padding: "0.5rem",
-    boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
-    display: "flex",
-    flexDirection: "column",
-  }}
->
-  <div
-    style={{
-      position: "relative",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "stretch",
-    }}
-  >
+      {/* 下部：チャット入力（ドラッグで高さ調整可能） */}
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          background: "#fafafa",
+          padding: "0.5rem",
+          boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+          }}
+        >
 
-    {/* ⬆ ドラッグ用のリサイズグリップ */}
-<div
-  id="resize-grip"
-  onMouseDown={(e) => {
-    e.preventDefault();
-    const startY = e.clientY;
-    const startHeight = textareaHeight;
-    
-    const handleMouseMove = (moveEvent) => {
-      const deltaY = startY - moveEvent.clientY; // 上に動かすと+、下に動かすと-
-      const newHeight = Math.max(60, Math.min(400, startHeight + deltaY));
-      setTextareaHeight(newHeight);
-    };
-    
-    const handleMouseUp = () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-      document.body.style.userSelect = ''; // テキスト選択を復元
-    };
-    
-    document.body.style.userSelect = 'none'; // ドラッグ中のテキスト選択を防止
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  }}
-  style={{
-    position: "relative",
-    height: "24px", // 判定領域を広めに
-    cursor: "ns-resize",
-    marginBottom: "4px",
-    userSelect: "none",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-  }}
-  title="ドラッグして入力欄の高さを調整"
->
-  {/* 見た目のバー */}
-  <div
-    style={{
-      height: "6px",
-      width: "40%",
-      borderRadius: "3px",
-      background:
-        "linear-gradient(to right, #ccc 40%, transparent 40%, transparent 60%, #ccc 60%)",
-      backgroundSize: "20px 6px",
-      pointerEvents: "none", // これは残してOK
-    }}
-  />
-</div>
+          {/* ⬆ ドラッグ用のリサイズグリップ */}
+          <div
+            id="resize-grip"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startY = e.clientY;
+              const startHeight = textareaHeight;
 
-    {/* テキストエリア */}
-    <textarea
-      style={{
-        width: "100%",
-        height: `${textareaHeight}px`,
-        fontSize: "16px",
-        fontFamily: "monospace",
-        resize: "none",
-        padding: "6px",
-        boxSizing: "border-box",
-      }}
-      value={promptText}
-      onChange={handlePromptChange}
-      onKeyDown={handleKeyDown}
-      placeholder="⌘+Enterで送信、⌘+Shift+Enterで送信して消す"
-    />
-  </div>
+              const handleMouseMove = (moveEvent) => {
+                const deltaY = startY - moveEvent.clientY; // 上に動かすと+、下に動かすと-
+                const newHeight = Math.max(60, Math.min(400, startHeight + deltaY));
+                setTextareaHeight(newHeight);
+              };
 
-  {/* ボタン行 */}
-  <div
-    style={{
-      display: "flex",
-      gap: "0.4rem",
-      marginTop: "0.4rem",
-      flexShrink: 0,
-    }}
-  >
-    <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
-      ✈️ 送信
-    </button>
-    <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>
-      ✈️ 送信して消す
-    </button>
-  </div>
-</div>
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.body.style.userSelect = ''; // テキスト選択を復元
+              };
+
+              document.body.style.userSelect = 'none'; // ドラッグ中のテキスト選択を防止
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+            style={{
+              position: "relative",
+              height: "24px", // 判定領域を広めに
+              cursor: "ns-resize",
+              marginBottom: "4px",
+              userSelect: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="ドラッグして入力欄の高さを調整"
+          >
+            {/* 見た目のバー */}
+            <div
+              style={{
+                height: "6px",
+                width: "40%",
+                borderRadius: "3px",
+                background:
+                  "linear-gradient(to right, #ccc 40%, transparent 40%, transparent 60%, #ccc 60%)",
+                backgroundSize: "20px 6px",
+                pointerEvents: "none", // これは残してOK
+              }}
+            />
+          </div>
+
+          {/* テキストエリア */}
+          <textarea
+            style={{
+              width: "100%",
+              height: `${textareaHeight}px`,
+              fontSize: "16px",
+              fontFamily: "monospace",
+              resize: "none",
+              padding: "6px",
+              boxSizing: "border-box",
+            }}
+            value={promptText}
+            onChange={handlePromptChange}
+            onKeyDown={handleKeyDown}
+            placeholder="⌘+Enterで送信、⌘+Shift+Enterで送信して消す"
+          />
+        </div>
+
+        {/* ボタン行 */}
+        <div
+          style={{
+            display: "flex",
+            gap: "0.4rem",
+            marginTop: "0.4rem",
+            flexShrink: 0,
+          }}
+        >
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
+            ✈️ 送信
+          </button>
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>
+            ✈️ 送信して消す
+          </button>
+        </div>
+      </div>
 
 
 
