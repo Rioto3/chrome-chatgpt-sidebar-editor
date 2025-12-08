@@ -1,5 +1,5 @@
 // src/app/backgtound/sync.js
-const API_BASE = "http://ik1-402-33203.vs.sakura.ne.jp:3219/bookmarksState";
+const API_BASE = "https://ik1-402-33203.vs.sakura.ne.jp:3219/bookmarksState";
 
 /**
  * 新しいフォルダ（bookmarksState配下のgroup）を追加
