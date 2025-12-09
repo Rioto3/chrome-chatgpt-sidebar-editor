@@ -14,6 +14,32 @@ const SettingsPage = () => {
     });
   }, []);
 
+  // === DB同期（まずは全取得してログに出すだけ） ===
+  const handleDbSync = () => {
+    setStatus("🔄 DB同期を実行中…");
+
+    chrome.runtime.sendMessage(
+      { type: "SYNC_FROM_SERVER" },
+      (response) => {
+        if (chrome.runtime.lastError) {
+          setStatus("❌ 通信エラー（background 未応答）");
+          console.error(chrome.runtime.lastError);
+          return;
+        }
+
+        if (!response?.ok) {
+          setStatus("❌ 同期エラー: " + response?.error);
+          return;
+        }
+
+        // 取得データを console に出すだけ（機能チェック用）
+        console.log("📥 サーバーから取得したデータ:", response.data);
+
+        setStatus("✅ サーバーからデータを取得しました（ログを確認してください）");
+      }
+    );
+  };
+
   // === JSONエクスポート ===
   const handleExport = () => {
     chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
@@ -82,9 +108,10 @@ const SettingsPage = () => {
           />
         </label>
       </div>
-  <button onClick={() => setStatus("🔄 DB同期（未実装）をクリックしました")}>
-    🔄 DB同期
-  </button>
+
+      
+      <button onClick={handleDbSync}>🔄 DB同期</button>
+
       <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
 
       <textarea
