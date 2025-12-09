@@ -1,87 +1,86 @@
 # ============================================================
-#  Makefile for Firefox Add-on (Self-Deploy Build System)
+#  Makefile for Firefox Add-on Build (Timestamp Folder Version)
 #
 #  make build
-#      1. Run production build (npm run build:prod)
-#      2. Package dist/prod → dist/<timestamp>.xpi
-#      3. Package src + metadata files → dist/<timestamp>.zip
+#      1. Run production build: npm run build:prod
+#      2. Create dist/<timestamp>/ directory
+#      3. Package dist/prod → dist/<timestamp>/distribution.xpi
+#      4. Package src + metadata → dist/<timestamp>/for-check.zip
 #
-#  Timestamp format: MMDDHHMMSS (例: 1209183059)
-#  dist/ ディレクトリが出力先
+#  Timestamp format: MMDDHHMMSS
 # ============================================================
 
-# タイムスタンプ
+# Timestamp
 TS := $(shell date +%m%d%H%M%S)
 
-# dist ディレクトリ
-DIST_DIR := dist
+# Directories
+DIST_ROOT := dist
+DIST_DIR := $(DIST_ROOT)/$(TS)
 PROD_DIR := dist/prod
 
-# xpi 出力先
-XPI_FILE := $(DIST_DIR)/$(TS).xpi
+# Output files
+XPI_OUT := $(DIST_DIR)/distribution.xpi
+ZIP_OUT := $(DIST_DIR)/for-check.zip
 
-# zip 出力先
-SRC_ZIP := $(DIST_DIR)/$(TS).zip
-
-# メタ情報パッケージに含めるファイル
+# Files included in metadata ZIP
 META_FILES := src package.json package-lock.json README.md Makefile
 
 
 # ------------------------------------------------------------
-#  build: すべてのビルドを実行
+# Public target
 # ------------------------------------------------------------
 build: prep npm-build xpi zip
 	@echo "----------------------------------------------"
 	@echo " Build completed:"
-	@echo "   XPI: $(XPI_FILE)"
-	@echo "   ZIP: $(SRC_ZIP)"
+	@echo "   XPI: $(XPI_OUT)"
+	@echo "   ZIP: $(ZIP_OUT)"
 	@echo "----------------------------------------------"
 
 
 # ------------------------------------------------------------
-# dist フォルダ準備
+# Prepare dist/<timestamp>/ directory
 # ------------------------------------------------------------
 prep:
 	@mkdir -p $(DIST_DIR)
-	@echo "[prep] dist/ folder prepared"
+	@echo "[prep] Created: $(DIST_DIR)"
 
 
 # ------------------------------------------------------------
-# npm build 実行
+# Run npm production build
 # ------------------------------------------------------------
 npm-build:
 	@echo "[npm] Running npm run build:prod ..."
 	npm run build:prod
-	@echo "[npm] Build completed"
+	@echo "[npm] Build OK"
 
 
 # ------------------------------------------------------------
-# dist/prod → xpi パッケージ生成
+# Package dist/prod → distribution.xpi
 # ------------------------------------------------------------
 xpi:
 	@if [ ! -d "$(PROD_DIR)" ]; then \
-		echo "ERROR: $(PROD_DIR) not found. Check build output."; \
+		echo "ERROR: $(PROD_DIR) not found. Build failed?"; \
 		exit 1; \
 	fi
-	@echo "[xpi] Packaging $(PROD_DIR) → $(XPI_FILE)"
-	cd $(PROD_DIR) && zip -r ../$(TS).xpi .
+	@echo "[xpi] Packaging $(PROD_DIR) → $(XPI_OUT)"
+	cd $(PROD_DIR) && zip -r ../../$(XPI_OUT) .
 	@echo "[xpi] XPI created"
 
 
 # ------------------------------------------------------------
-# src + metadata → zip パッケージ生成
+# Package metadata → for-check.zip
 # ------------------------------------------------------------
 zip:
-	@echo "[zip] Packaging metadata → $(SRC_ZIP)"
-	zip -r $(SRC_ZIP) $(META_FILES)
+	@echo "[zip] Packaging metadata → $(ZIP_OUT)"
+	zip -r $(ZIP_OUT) $(META_FILES)
 	@echo "[zip] ZIP created"
 
 
 # ------------------------------------------------------------
-# clean: dist を削除
+# Remove entire dist directory
 # ------------------------------------------------------------
 clean:
-	rm -rf $(DIST_DIR)
+	rm -rf $(DIST_ROOT)
 	@echo "[clean] dist/ removed"
 
 
