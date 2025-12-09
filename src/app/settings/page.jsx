@@ -14,31 +14,30 @@ const SettingsPage = () => {
     });
   }, []);
 
-  // === DB同期（まずは全取得してログに出すだけ） ===
-  const handleDbSync = () => {
-    setStatus("🔄 DB同期を実行中…");
+// === DB同期（サーバ取得 → ローカル保存 → プレビュー更新） ===
+const handleDbSync = () => {
+  setStatus("🔄 DB同期を実行中…");
 
-    chrome.runtime.sendMessage(
-      { type: "SYNC_FROM_SERVER" },
-      (response) => {
-        if (chrome.runtime.lastError) {
-          setStatus("❌ 通信エラー（background 未応答）");
-          console.error(chrome.runtime.lastError);
-          return;
-        }
+  chrome.runtime.sendMessage({ type: "SYNC_FROM_SERVER" }, (response) => {
+    if (chrome.runtime.lastError) {
+      setStatus("❌ 通信エラー（background 未応答）");
+      console.error(chrome.runtime.lastError);
+      return;
+    }
 
-        if (!response?.ok) {
-          setStatus("❌ 同期エラー: " + response?.error);
-          return;
-        }
+    if (!response?.ok) {
+      setStatus("❌ 同期エラー: " + response?.error);
+      return;
+    }
 
-        // 取得データを console に出すだけ（機能チェック用）
-        console.log("📥 サーバーから取得したデータ:", response.data);
+    // background 側でローカル保存済み → 最新データを読み直す
+    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
+      setJsonPreview(JSON.stringify(data, null, 2));
+      setStatus("✅ サーバー → ローカルへ同期完了");
+    });
+  });
+};
 
-        setStatus("✅ サーバーからデータを取得しました（ログを確認してください）");
-      }
-    );
-  };
 
   // === JSONエクスポート ===
   const handleExport = () => {
@@ -109,7 +108,7 @@ const SettingsPage = () => {
         </label>
       </div>
 
-      
+
       <button onClick={handleDbSync}>🔄 DB同期</button>
 
       <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
