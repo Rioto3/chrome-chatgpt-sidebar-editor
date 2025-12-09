@@ -82,7 +82,9 @@ const SettingsPage = () => {
           />
         </label>
       </div>
-
+  <button onClick={() => setStatus("🔄 DB同期（未実装）をクリックしました")}>
+    🔄 DB同期
+  </button>
       <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
 
       <textarea
