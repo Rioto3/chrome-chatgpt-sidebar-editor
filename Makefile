@@ -1,21 +1,20 @@
 # ============================================================
-#  Makefile for Firefox Add-on Build (Timestamp Folder Version)
+#  Makefile for Firefox Add-on Build (Version Directory)
 #
-#  make build
-#      1. Run production build: npm run build:prod
-#      2. Create dist/<timestamp>/ directory
-#      3. Package dist/prod → dist/<timestamp>/distribution.xpi
-#      4. Package src + metadata → dist/<timestamp>/for-check.zip
+#  dist/v<version>/distribution.xpi
+#  dist/v<version>/for-check.zip
 #
-#  Timestamp format: MMDDHHMMSS
+#  <version> は package.json の "version" を自動取得
 # ============================================================
 
-# Timestamp
-TS := $(shell date +%m%d%H%M%S)
+# version from package.json
+VERSION := $(shell node -p "require('./package.json').version")
 
-# Directories
+# Directory → dist/v1.0.1/
 DIST_ROOT := dist
-DIST_DIR := $(DIST_ROOT)/$(TS)
+DIST_DIR := $(DIST_ROOT)/v$(VERSION)
+
+# Build output directory from npm
 PROD_DIR := dist/prod
 
 # Output files
@@ -27,7 +26,7 @@ META_FILES := src package.json package-lock.json README.md Makefile
 
 
 # ------------------------------------------------------------
-# Public target
+# Main target
 # ------------------------------------------------------------
 build: prep npm-build xpi zip
 	@echo "----------------------------------------------"
@@ -38,7 +37,7 @@ build: prep npm-build xpi zip
 
 
 # ------------------------------------------------------------
-# Prepare dist/<timestamp>/ directory
+# Prepare output folder
 # ------------------------------------------------------------
 prep:
 	@mkdir -p $(DIST_DIR)
@@ -46,7 +45,7 @@ prep:
 
 
 # ------------------------------------------------------------
-# Run npm production build
+# npm production build
 # ------------------------------------------------------------
 npm-build:
 	@echo "[npm] Running npm run build:prod ..."
@@ -55,29 +54,29 @@ npm-build:
 
 
 # ------------------------------------------------------------
-# Package dist/prod → distribution.xpi
+# Create distribution.xpi
 # ------------------------------------------------------------
 xpi:
 	@if [ ! -d "$(PROD_DIR)" ]; then \
 		echo "ERROR: $(PROD_DIR) not found. Build failed?"; \
 		exit 1; \
 	fi
-	@echo "[xpi] Packaging $(PROD_DIR) → $(XPI_OUT)"
+	@echo "[xpi] Creating $(XPI_OUT)"
 	cd $(PROD_DIR) && zip -r ../../$(XPI_OUT) .
 	@echo "[xpi] XPI created"
 
 
 # ------------------------------------------------------------
-# Package metadata → for-check.zip
+# Create for-check.zip
 # ------------------------------------------------------------
 zip:
-	@echo "[zip] Packaging metadata → $(ZIP_OUT)"
+	@echo "[zip] Creating $(ZIP_OUT)"
 	zip -r $(ZIP_OUT) $(META_FILES)
 	@echo "[zip] ZIP created"
 
 
 # ------------------------------------------------------------
-# Remove entire dist directory
+# Remove dist directory
 # ------------------------------------------------------------
 clean:
 	rm -rf $(DIST_ROOT)
