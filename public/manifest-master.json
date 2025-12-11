@@ -1,35 +1,70 @@
 {
   "manifest_version": 3,
-  "name": "chrome-chatgpt-sidebar-editor",
-  "version": "{placeholder}",
-  "description": "chrome-chatgpt-sidebar-editor",
-  
+  "name": "AIチャットエディタ＋ for マイGPT",
+  "version": "1.0.0",
+  "description": "エディタの拡張＋マイGPTチャットをプロジェクトに整理",
+  "permissions": [
+    "activeTab",
+    "storage",
+    "tabs"
+  ],
+  "host_permissions": [
+    "https://chat.openai.com/*",
+    "https://chatgpt.com/*",
+    "https://api.tubeclip.win/*"
+  ],
+  "background": {
+    "scripts": [
+      "background.js"
+    ]
+  },
+  "sidebar_action": {
+    "default_panel": "sidepanel.html",
+    "default_title": "AIチャットエディタ＋ for マイGPT",
+    "default_icon": {
+      "16": "icon-16x16.png",
+      "32": "icon-32x32.png",
+      "48": "icon-48x48.png",
+      "128": "icon-128x128.png"
+    }
+  },
+  "action": {
+    "default_title": "AIチャットエディタ＋ for マイGPT",
+    "default_icon": {
+      "16": "icon-16x16.png"
+    }
+  },
+  "options_ui": {
+    "page": "settings.html",
+    "open_in_tab": true
+  },
   "icons": {
     "16": "icon-16x16.png",
     "32": "icon-32x32.png",
     "48": "icon-48x48.png",
     "128": "icon-128x128.png"
   },
-  
-  "permissions": [
-    "sidePanel",
-    "activeTab",
-    "storage",
-    "tabs"
+  "content_scripts": [
+    {
+      "matches": [
+        "https://chat.openai.com/*",
+        "https://chatgpt.com/*"
+      ],
+      "js": [
+        "content.js"
+      ]
+    }
   ],
-  
-  "host_permissions": [
-    "https://chat.openai.com/*"
-  ],
-  
-  "action": {
-    "default_title": "chrome-chatgpt-sidebar-editor"
-  },
-  
-  "side_panel": {
-    "default_path": "sidepanel.html"
-  },
-  "background": {
-    "service_worker": "background.js"
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "aichat-editor-plus@tubeclip.work",
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": [
+          "none"
+        ],
+        "optional": []
+      }
+    }
   }
 }

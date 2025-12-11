@@ -1,7 +1,7 @@
 {
-  "version": "0.0.1",
+  "version": "1.0.2",
   "scripts": {
-    "dev:devel": "NODE_ENV=development webpack --watch",
+    "dev": "NODE_ENV=development webpack --watch & sleep 1 && web-ext run --source-dir=dist/devel",
     "build:devel": "NODE_ENV=development webpack",
     "build:prod": "NODE_ENV=production webpack"
   },
@@ -14,6 +14,7 @@
     "webpack-cli": "^5.0.0"
   },
   "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
     "html-webpack-plugin": "^5.6.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0"
