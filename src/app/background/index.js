@@ -7,33 +7,40 @@ console.log("🧠 Background service loaded.");
 chrome.runtime.onInstalled.addListener(() => {
   console.log("🚀 Extension installed.");
 });
-
 // 🔥 サイドパネルからのメッセージを受け取る
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   console.log("📩 Message received:", message);
+  console.log("👤 Sender:", sender);
 
   // 非同期処理を即座に実行
   (async () => {
     try {
+      console.log("🔄 Processing message type:", message.type);
+      
       switch (message.type) {
         // ====== 手動同期 ======
         case "SYNC_TO_SERVER":
+          console.log("🔼 Starting sync to server...");
           await Sync.syncToServer();
+          console.log("✅ Sync to server completed");
           sendResponse({ ok: true });
           break;
 
         case "SYNC_FROM_SERVER":
+          console.log("🔽 Starting sync from server...");
           const data = await Sync.syncFromServer();
+          console.log("✅ Sync from server completed");
           sendResponse({ ok: true, data });
           break;
 
         // ====== グループ操作 ======
         case "GROUP_CREATE":
+          console.log("📁 Creating group:", message.payload);
           await API.createGroup({
             id: message.payload.id,
             name: message.payload.name,
           });
-          console.log(`✅ Group created: ${message.payload.name}`);
+          console.log("✅ Group created successfully");
           sendResponse({ ok: true });
           break;
 
