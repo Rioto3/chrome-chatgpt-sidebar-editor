@@ -11,6 +11,7 @@
   "host_permissions": [
     "https://chat.openai.com/*",
     "https://chatgpt.com/*",
+    "https://v1.api.tubeclip.win/*",
     "https://api.tubeclip.win/*"
   ],
   "background": {
