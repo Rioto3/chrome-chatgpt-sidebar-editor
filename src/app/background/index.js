@@ -16,7 +16,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   (async () => {
     try {
       console.log("🔄 Processing message type:", message.type);
-      
+
       switch (message.type) {
         // ====== 手動同期 ======
         case "SYNC_TO_SERVER":
@@ -44,6 +44,13 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
 
+        case "GROUP_UPDATE":
+          console.log("✏️ Updating group:", message.payload);
+          await API.updateGroup(message.payload.id, message.payload.data);
+          console.log("✅ Group updated successfully");
+          sendResponse({ ok: true });
+          break;
+          
         case "SYNC_DELETE":
           await API.deleteGroup(message.payload.id);
           console.log(`🗑 Group deleted: ${message.payload.id}`);

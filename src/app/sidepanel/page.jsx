@@ -30,7 +30,7 @@ const SidepanelAsPage = () => {
     const onMouseMove = (e) => {
       if (!isDragging) return;
       const dy = startY - e.clientY;
-      const newHeight = Math.min(Math.max(startHeight, dy, 80), 500); // 80〜500px
+      const newHeight = Math.min(Math.max(startHeight + dy, 80), 500); // 80〜500px
       setTextareaHeight(newHeight);
     };
 
@@ -84,11 +84,11 @@ const addFolder = () => {
     saveState(newFolders);
     setCurrentFolder(id);
 
-    // ✅ フォルダ作成時のみサーバに通知
+    // ✅ フォルダ作成時のサーバ同期
     if (API_SYNC) {
       chrome.runtime.sendMessage({
         type: "GROUP_CREATE",
-        payload: { id, name, items: [] },
+        payload: { id, name },
       });
     }
   }, 10);
@@ -96,17 +96,25 @@ const addFolder = () => {
 
 
 
-  const renameFolder = () => {
-    const folder = folders[currentFolder];
-    if (!folder) return;
-    setTimeout(() => {
-      if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
-      const newName = prompt("新しいフォルダ名を入力してください", folder.name);
-      if (!newName) return;
-      const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
-      saveState(updated);
-    }, 10);
-  };
+const renameFolder = () => {
+  const folder = folders[currentFolder];
+  if (!folder) return;
+  setTimeout(() => {
+    if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
+    const newName = prompt("新しいフォルダ名を入力してください", folder.name);
+    if (!newName) return;
+    const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
+    saveState(updated);
+
+    // 🔥 フォルダ名変更時のサーバ同期を追加
+    if (API_SYNC) {
+      chrome.runtime.sendMessage({
+        type: "GROUP_UPDATE",
+        payload: { id: currentFolder, data: { name: newName } },
+      });
+    }
+  }, 10);
+};
 
 
 
@@ -154,16 +162,16 @@ const addFolder = () => {
       saveState(updated);
 
 
-         // ✅ ここを修正
-   if (API_SYNC) {
-     chrome.runtime.sendMessage({
-       type: "ITEM_CREATE",
-       payload: {
-         groupId: currentFolder,
-         item: newItem,
-       },
-     });
-   }
+      // ✅ アイテム作成時のサーバ同期
+      if (API_SYNC) {
+        chrome.runtime.sendMessage({
+          type: "ITEM_CREATE",
+          payload: {
+            groupId: currentFolder,
+            item: newItem,
+          },
+        });
+      }
     });
   };
 
@@ -183,11 +191,11 @@ const addFolder = () => {
       saveState(newFolders);
     }
 
+    // ✅ アイテム名変更時のサーバ同期
     if (API_SYNC) {
       chrome.runtime.sendMessage({
         type: "ITEM_UPDATE",
         payload: {
-          groupId: folderId,
           itemId: editingBookmark,
           data: { name: editingValue.trim() },
         },
@@ -204,6 +212,7 @@ const addFolder = () => {
 
   const deleteBookmark = (folderId, index) => {
     const folder = folders[folderId];
+    const item = folder.items[index];
     const updatedItems = folder.items.filter((_, i) => i !== index);
     const newFolders = {
       ...folders,
@@ -211,11 +220,11 @@ const addFolder = () => {
     };
     saveState(newFolders);
 
+    // ✅ アイテム削除時のサーバ同期
     if (API_SYNC) {
-      const item = folder.items[index];
       chrome.runtime.sendMessage({
         type: "ITEM_DELETE",
-        payload: { groupId: folderId, itemId: item.id },
+        payload: { itemId: item.id },
       });
     }
   };
