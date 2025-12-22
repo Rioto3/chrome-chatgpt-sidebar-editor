@@ -1,10 +1,10 @@
 // background/sync.js
 import { API } from "./api.js";
-import { Storage } from "./storage.js";
+import { BookmarksStorageService } from "./storage/bookmarksStorageService.js";
 
 export const Sync = {
   async syncToServer() {
-    const bookmarks = await Storage.getBookmarks();
+    const bookmarks = await BookmarksStorageService.getBookmarks();
 
     console.log("🔼 Uploading local → server ...");
 
@@ -39,7 +39,7 @@ export const Sync = {
       };
     }
 
-    await Storage.saveBookmarks(state);
+    await BookmarksStorageService.saveBookmarks(state);
     console.log("✅ Synced server → local");
     return state;
   },
