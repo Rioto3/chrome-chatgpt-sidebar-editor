@@ -60,7 +60,7 @@ const SidepanelAsPage = () => {
       if (data.bookmarksState) {
         setFolders(data.bookmarksState);
       } else {
-        const base = { default: { name: "お気に入り", items: [] } };
+        const base = { default: { name: "☆お気に入り", items: [] } };
         setFolders(base);
         chrome.storage.local.set({ bookmarksState: base });
       }
