@@ -3,6 +3,10 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
+import { createHandleKeyDown } from "./keyboardShortcuts";
+
+
+
 const API_SYNC = true;
 
 const SidepanelAsPage = () => {
@@ -267,13 +271,35 @@ const renameFolder = () => {
   };
 
   // ===== キーボードショートカット =====
-  const handleKeyDown = (e) => {
-    if (e.metaKey && e.key === "Enter") {
-      e.preventDefault();
-      if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter → 送信のみ
-      else sendPrompt(true);             // ⌘+Enter → 送信して消す
-    }
-  };
+// const handleKeyDown = (e) => {
+//   // ⌘ + =
+//   if (e.metaKey && e.key === "=" && !e.shiftKey) {
+//     e.preventDefault();
+
+//     const insert = "===\n";
+//     const newText = promptText.endsWith("\n")
+//       ? promptText + insert
+//       : promptText + "\n" + insert;
+
+//     setPromptText(newText);
+//     chrome.storage.local.set({ prompt: newText });
+//     return;
+//   }
+
+//   // ⌘ + Enter 系（既存）
+//   if (e.metaKey && e.key === "Enter") {
+//     e.preventDefault();
+//     if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter
+//     else sendPrompt(true);             // ⌘+Enter
+//   }
+// };
+
+const handleKeyDown = createHandleKeyDown({
+  getPromptText: () => promptText,
+  setPromptText,
+  sendPrompt,
+});
+
 
   // ===== UI =====
   return (
