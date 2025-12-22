@@ -444,7 +444,7 @@ const renameFolder = () => {
             }}
             style={{
               position: "relative",
-              height: "24px", // 判定領域を広めに
+              height: "8px", // 判定領域を広めに
               cursor: "ns-resize",
               marginBottom: "4px",
               userSelect: "none",
