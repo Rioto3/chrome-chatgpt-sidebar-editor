@@ -1,7 +1,11 @@
 // background/api.js
+
 const BASE_URL = "https://v1.api.tubeclip.win/api/v1/ai-chat-editor-plus";
 
 export const API = {
+  /**
+   * 共通HTTPラッパー
+   */
   async request(path, method = "GET", body = null) {
     const url = `${BASE_URL}${path}`;
     const options = {
@@ -9,7 +13,7 @@ export const API = {
       headers: { "Content-Type": "application/json" },
     };
     if (body) options.body = JSON.stringify(body);
-    
+
     const res = await fetch(url, options);
     if (!res.ok) {
       const errText = await res.text();
@@ -18,17 +22,20 @@ export const API = {
     return await res.json();
   },
 
-  // ---- Groups ----
-  getGroups() { return this.request("/groups/"); },
-  createGroup(data) { return this.request("/groups/", "POST", data); },
-  updateGroup(id, data) { return this.request(`/groups/${id}/`, "PATCH", data); },
-  deleteGroup(id) { return this.request(`/groups/${id}/`, "DELETE"); },
-  clearGroups() { return this.request("/groups/", "DELETE"); },
+  /**
+   * 📥 最新スナップショット取得
+   * GET /users/{user_id}/latest
+   */
+  async getLatestSnapshot(userId) {
+    return await this.request(`/users/${userId}/latest`);
+  },
 
-  // ---- Items ----
-  getItems() { return this.request("/items/"); },
-  createItem(data) { return this.request("/items/", "POST", data); },
-  updateItem(id, data) { return this.request(`/items/${id}/`, "PATCH", data); },
-  deleteItem(id) { return this.request(`/items/${id}/`, "DELETE"); },
-  clearItems() { return this.request("/items/", "DELETE"); },
+  /**
+   * 📤 スナップショット保存
+   * POST /users/{user_id}/snapshot
+   * body: { json_data: {...} }
+   */
+  async postSnapshot(userId, jsonData) {
+    return await this.request(`/users/${userId}/snapshot`, "POST", jsonData);
+  },
 };
