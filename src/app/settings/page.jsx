@@ -5,7 +5,7 @@ const SettingsPage = () => {
   const [status, setStatus] = useState("");
   const [jsonPreview, setJsonPreview] = useState("");
 
-  // === 現在のデータを読み出す（初期プレビュー用） ===
+  // === 初期データ読込 ===
   useEffect(() => {
     chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
       if (data) {
@@ -13,7 +13,6 @@ const SettingsPage = () => {
       }
     });
   }, []);
-
 
   // === JSONエクスポート ===
   const handleExport = () => {
@@ -30,7 +29,6 @@ const SettingsPage = () => {
         a.href = url;
         a.download = filename;
         a.click();
-
         URL.revokeObjectURL(url);
 
         setStatus(`✅ ${filename} をダウンロードしました`);
@@ -66,67 +64,60 @@ const SettingsPage = () => {
   };
 
   return (
-    <div style={{ padding: "1.5rem", fontFamily: "sans-serif", lineHeight: 1.6 }}>
-
-      <div id="headerSection">
-        <h2>⚙️ 設定</h2>
-      </div>
-
-
-      <div id="localJsonSection" style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+    <div className="settings-page">
+      <header>
+        <h1>⚙️ 設定</h1>
         <p>ブックマークとプロンプトのバックアップ／復元を行えます。</p>
+      </header>
 
-        <button onClick={handleExport}>📤 JSONをエクスポート</button>
+      {/* === ローカルJSONセクション === */}
+      <section id="localJsonSection" className="section">
+        <h2>📦 ローカルJSONデータ</h2>
+        <p className="section-desc">
+          現在のローカルデータをエクスポート／インポートできます。
+        </p>
 
-        <label style={{ cursor: "pointer" }}>
-          📥 JSONをインポート
-          <input
-            type="file"
-            accept=".json"
-            onChange={handleImport}
-            style={{ display: "none" }}
-          />
-        </label>
-      </div>
+        <div className="json-actions">
+          <button className="btn" onClick={handleExport}>📤 エクスポート</button>
+          <label className="btn btn-secondary">
+            📥 インポート
+            <input
+              type="file"
+              accept=".json"
+              onChange={handleImport}
+              style={{ display: "none" }}
+            />
+          </label>
+        </div>
+      </section>
 
-      <div id="dbSection">
-        <p>ここにデータベースに関する機能</p>
-      </div>
+      {/* === DBセクション（今後用） === */}
+      <section id="dbSection" className="section">
+        <h2>🗄 データベース同期（準備中）</h2>
+        <p>ここにサーバー連携機能を追加します。</p>
+      </section>
 
-      <div id="previewSection">
-        <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
+      {/* === プレビュー === */}
+      <section id="previewSection" className="section">
+        <h2>🧩 現在のJSONプレビュー</h2>
+        <pre>{jsonPreview}</pre>
+      </section>
 
-        <textarea
-          readOnly
-          value={jsonPreview}
-          placeholder="現在の保存データ、またはインポートした内容がここに表示されます"
-          style={{
-            width: "100%",
-            height: "320px",
-            fontFamily: "monospace",
-            fontSize: "13px",
-            marginTop: "0.5rem",
-            padding: "0.5rem",
-            borderRadius: "6px",
-            border: "1px solid #ccc",
-            background: "#fafafa",
-          }}
-        />
-      </div>
+      <footer>
+        <p className="status">{status}</p>
+      </footer>
     </div>
   );
 };
 
-// DOM レンダリング
+// === DOMマウント ===
 if (typeof document !== "undefined") {
   const container = document.getElementById("root");
   if (container) {
     const root = createRoot(container);
     root.render(<SettingsPage />);
   } else {
-    console.error(
-      "⚠️ #root が見つかりません。settings.html に <div id='root'></div> を追加してください。"
-    );
+    console.error("⚠️ #root が見つかりません。settings.html に <div id='root'></div> を追加してください。");
   }
 }
 
