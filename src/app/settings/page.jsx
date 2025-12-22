@@ -1,10 +1,13 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
-import "../styles/tailwind.css"; // ✅ Tailwindを読み込む
+import "../styles/tailwind.css"; // ✅ TailwindCSS 読み込み
 
 const SettingsPage = () => {
   const [status, setStatus] = useState("");
   const [jsonPreview, setJsonPreview] = useState("");
+
+  console.log("✅ SettingsPage mounted");
+
 
   // === 初期データ読込 ===
   useEffect(() => {
@@ -25,7 +28,6 @@ const SettingsPage = () => {
 
         const blob = new Blob([json], { type: "application/json" });
         const url = URL.createObjectURL(blob);
-
         const a = document.createElement("a");
         a.href = url;
         a.download = filename;
@@ -54,7 +56,9 @@ const SettingsPage = () => {
         if (data.prompt) update.prompt = data.prompt;
 
         chrome.storage.local.set(update, () => {
-          setStatus(`✅ ${file.name} をインポートしました（Sidepanelを再読み込みしてください）`);
+          setStatus(
+            `✅ ${file.name} をインポートしました（Sidepanelを再読み込みしてください）`
+          );
           setJsonPreview(JSON.stringify(data, null, 2));
         });
       } catch (err) {
@@ -65,48 +69,64 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="settings-page">
-      <header>
-        <h1>⚙️ 設定</h1>
-        <p>ブックマークとプロンプトのバックアップ／復元を行えます。</p>
+    <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
+      <div className="p-6 bg-red-100 text-red-800 font-bold">
+  ✅ Tailwind 読み込みチェック
+</div>
+
+      {/* === Header === */}
+      <header className="mb-6 border-b pb-3">
+        <h1 className="text-2xl font-bold">⚙️ 設定</h1>
+        <p className="text-sm text-gray-500 mt-1">
+          ブックマークとプロンプトのバックアップ／復元を行えます。
+        </p>
       </header>
 
-      {/* === ローカルJSONセクション === */}
-      <section id="localJsonSection" className="section">
-        <h2>📦 ローカルJSONデータ</h2>
-        <p className="section-desc">
+      {/* === Local JSON Section === */}
+      <section id="localJsonSection" className="mb-8">
+        <h2 className="text-lg font-semibold mb-2">📦 ローカルJSONデータ</h2>
+        <p className="text-sm text-gray-600 mb-3">
           現在のローカルデータをエクスポート／インポートできます。
         </p>
 
-        <div className="json-actions">
-          <button className="btn" onClick={handleExport}>📤 エクスポート</button>
-          <label className="btn btn-secondary">
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleExport}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded transition"
+          >
+            📤 エクスポート
+          </button>
+
+          <label className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded cursor-pointer transition">
             📥 インポート
             <input
               type="file"
               accept=".json"
               onChange={handleImport}
-              style={{ display: "none" }}
+              className="hidden"
             />
           </label>
         </div>
       </section>
 
-      {/* === DBセクション（今後用） === */}
-      <section id="dbSection" className="section">
-        <h2>🗄 データベース同期（準備中）</h2>
-        <p>ここにサーバー連携機能を追加します。</p>
+      {/* === Database Section === */}
+      <section id="dbSection" className="mb-8">
+        <h2 className="text-lg font-semibold mb-2">🗄 データベース同期（準備中）</h2>
+        <p className="text-sm text-gray-600">
+          ここにサー能を追加します。
+        </p>
       </section>
 
-      {/* === プレビュー === */}
-      <section id="previewSection" className="section">
-        <h2>🧩 現在のJSONプレビュー</h2>
-        <pre>{jsonPreview}</pre>
+      {/* === JSON Preview === */}
+      <section id="jsonPreview" className="mb-6">
+        <h2 className="text-lg font-semibold mb-2">🧩 現在のJSONプレビュー</h2>
+        <pre className="bg-gray-900 text-green-300 text-sm rounded p-4 overflow-auto max-h-[300px] font-mono whitespace-pre-wrap">
+          {jsonPreview || "（まだデータがありません）"}
+        </pre>
       </section>
 
-      <footer>
-        <p className="status">{status}</p>
-      </footer>
+      {/* === Status Bar === */}
+      <div className="text-sm text-gray-700 italic">{status}</div>
     </div>
   );
 };
@@ -118,7 +138,9 @@ if (typeof document !== "undefined") {
     const root = createRoot(container);
     root.render(<SettingsPage />);
   } else {
-    console.error("⚠️ #root が見つかりません。settings.html に <div id='root'></div> を追加してください。");
+    console.error(
+      "⚠️ #root が見つかりません。settings.html に <div id='root'></div> を追加してください。"
+    );
   }
 }
 

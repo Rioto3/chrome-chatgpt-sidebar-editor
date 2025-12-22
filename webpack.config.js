@@ -52,14 +52,16 @@ module.exports = {
     new HtmlWebpackPlugin({
       template: "src/app/template.html",
       filename: "sidepanel.html",
-      chunks: ['sidepanel']
+      chunks: ['sidepanel'],
+      inject: "body", // ✅ ← これが重要！
     }),
 
 
     new HtmlWebpackPlugin({
       template: "src/app/template.html",
       filename: "settings.html",
-      chunks: ['settings']
+      chunks: ['settings'],
+      inject: "body", // ✅ ← これが重要！
     }),
 
     new CopyWebpackPlugin({
