@@ -118,6 +118,50 @@ const handleApplyPreviewToLocal = async () => {
 };
 
 
+// === サーバーへ書き込み ===
+const handleSaveToServer = async () => {
+  try {
+    if (!jsonPreview) {
+      setStatus("⚠️ プレビューにデータがありません");
+      return;
+    }
+
+    // 1️⃣ JSONを解析（安全チェック）
+    let parsed;
+    try {
+      parsed = JSON.parse(jsonPreview);
+    } catch (err) {
+      throw new Error("プレビュー内容が有効なJSONではありません。");
+    }
+
+    // 2️⃣ ai-chat-editor-plus の中身だけを抽出
+    const snapshotData = { "ai-chat-editor-plus": parsed };
+
+    // 3️⃣ POST送信
+    setStatus("🚀 サーバーへデータを送信中…");
+
+    const res = await fetch(
+      "https://v1.api.tubeclip.win/api/v1/ai-chat-editor-plus/users/fdbf0f79-1a20-4d3a-8e7d-521664257a0d/snapshot",
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(snapshotData),
+      }
+    );
+
+    if (!res.ok) {
+      const text = await res.text();
+      throw new Error(`HTTP ${res.status}: ${text}`);
+    }
+
+    const result = await res.json();
+    setStatus(`✅ サーバーへ保存完了（ID: ${result.snapshot_id || "不明"}）`);
+  } catch (err) {
+    console.error("❌ handleSaveToServer Error:", err);
+    setStatus(`❌ サーバー書き込みエラー: ${err.message}`);
+  }
+};
+
 
 
 
@@ -159,25 +203,41 @@ const handleApplyPreviewToLocal = async () => {
         </div>
       </section>
 
-      {/* === Database Section === */}
-      <section id="dbSection" className="mb-8">
-        <h2 className="text-base font-semibold mb-2">🗄 サーバーデータ同期</h2>
-        <p className="text-sm text-gray-600 mb-3">
-          サーバー上に保存されたスナップショットを読み込みます。
-        </p>
 
-        <button
-          onClick={handleLoadFromServer}
-          disabled={loading}
-          className={`px-4 py-2 rounded text-white transition ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-purple-600 hover:bg-purple-700"
-          }`}
-        >
-          {loading ? "⏳ 取得中…" : "📡 サーバーから読み込む"}
-        </button>
-      </section>
+{/* === Database Section === */}
+<section id="dbSection" className="mb-8">
+  <h2 className="text-lg font-semibold mb-2">🗄 サーバーデータ同期</h2>
+  <p className="text-sm text-gray-600 mb-3">
+    サーバー上に保存されたスナップショットを読み込み・保存できます。
+  </p>
+
+  <div className="flex items-center gap-3">
+    {/* ✅ サーバーから読み込む */}
+    <button
+      onClick={handleLoadFromServer}
+      disabled={loading}
+      className={`${
+        loading ? "bg-gray-400" : "bg-blue-600 hover:bg-blue-700"
+      } text-white px-4 py-2 rounded transition`}
+    >
+      {loading ? "⏳ 取得中…" : "📡 サーバーから読み込む"}
+    </button>
+
+    {/* ✅ サーバーへ書き込む */}
+    <button
+      onClick={handleSaveToServer}
+      disabled={loading}
+      className={`${
+        loading ? "bg-gray-400" : "bg-green-600 hover:bg-green-700"
+      } text-white px-4 py-2 rounded transition`}
+    >
+      🚀 サーバーへ書き込む
+    </button>
+  </div>
+</section>
+
+
+
 
 {/* === JSON Preview === */}
 <section id="jsonPreview" className="mb-6">
