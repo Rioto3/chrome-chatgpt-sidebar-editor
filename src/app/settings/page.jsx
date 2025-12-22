@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
+import "../styles/tailwind.css"; // ✅ Tailwindを読み込む
 
 const SettingsPage = () => {
   const [status, setStatus] = useState("");
