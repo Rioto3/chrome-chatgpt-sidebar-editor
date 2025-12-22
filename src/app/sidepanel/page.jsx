@@ -495,6 +495,26 @@ const renameFolder = () => {
             flexShrink: 0,
           }}
         >
+            <button
+    onClick={() => {
+      setPromptText((prev) => prev + (prev.endsWith("\n") ? "- " : "\n- "));
+      chrome.storage.local.set({
+        prompt: promptText + (promptText.endsWith("\n") ? "- " : "\n- "),
+      });
+    }}
+    title="箇条書きを追加"
+    style={{
+      flex: "0 0 auto",
+      padding: "4px 6px",
+      fontSize: "14px",
+      background: "#f3f4f6",
+      border: "1px solid #ccc",
+      borderRadius: "4px",
+      cursor: "pointer",
+    }}
+  >
+    •
+  </button>
           <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
             ✈️ 送信
           </button>
