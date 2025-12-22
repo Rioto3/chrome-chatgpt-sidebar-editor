@@ -13,18 +13,10 @@ const SettingsPage = () => {
 
   console.log("✅ SettingsPage mounted");
 
-  // === 初期データ読込 ===
-  useEffect(() => {
-    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
-      if (data) {
-        setJsonPreview(JSON.stringify(data, null, 2));
-      }
-    });
-  }, []);
 
   // === JSONエクスポート ===
   const handleExport = () => {
-    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
+    chrome.storage.local.get(["ai-chat-editor-plus"], (data) => {
       try {
         const json = JSON.stringify(data, null, 2);
         const date = new Date().toISOString().split("T")[0];
@@ -131,10 +123,6 @@ const handleApplyPreviewToLocal = async () => {
 
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
-      {/* Tailwindチェック用 */}
-      <div className="p-3 bg-blue-100 text-blue-800 text-sm mb-4 rounded">
-        ✅ Tailwind 読み込みOK
-      </div>
 
       {/* === Header === */}
       <header className="mb-6 border-b pb-3">
