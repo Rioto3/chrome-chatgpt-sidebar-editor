@@ -54,19 +54,16 @@ const SidepanelAsPage = () => {
 
 
   // ===== 初期化 =====
+useEffect(() => {
+  chrome.runtime.sendMessage({ type: "BOOKMARKS_INIT" }, (response) => {
+    if (response?.ok) {
+      setFolders(response.data);
+    } else {
+      console.error("❌ 初期化エラー:", response?.error);
+    }
+  });
+}, []);
 
-  useEffect(() => {
-    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
-      if (data.bookmarksState) {
-        setFolders(data.bookmarksState);
-      } else {
-        const base = { default: { name: "☆お気に入り", items: [] } };
-        setFolders(base);
-        chrome.storage.local.set({ bookmarksState: base });
-      }
-      if (data.prompt) setPromptText(data.prompt);
-    });
-  }, []);
 
 
 const saveState = (newFolders) => {

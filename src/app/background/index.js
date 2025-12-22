@@ -1,6 +1,8 @@
 // background/index.js
 import { API } from "./api.js";
 import { Sync } from "./sync.js";
+import { BookmarksStorageService } from "./storage/bookmarksStorageService.js";
+
 
 console.log("🧠 Background service loaded.");
 
@@ -28,7 +30,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 
         case "SYNC_FROM_SERVER":
           console.log("🔽 Starting sync from server...");
-          const data = await Sync.syncFromServer();
+          var data = await Sync.syncFromServer();
           console.log("✅ Sync from server completed");
           sendResponse({ ok: true, data });
           break;
@@ -79,6 +81,17 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
           sendResponse({ ok: true });
           break;
 
+      case "BOOKMARKS_INIT":
+        var data = await BookmarksStorageService.initialize();
+        sendResponse({ ok: true, data });
+        break;
+
+      case "BOOKMARKS_GET":
+        const bookmarks = await BookmarksStorageService.getBookmarks();
+        sendResponse({ ok: true, data: bookmarks });
+        break;
+
+          
         default:
           console.warn("❓ Unknown message type:", message.type);
           sendResponse({ ok: false, error: "Unknown message type" });
