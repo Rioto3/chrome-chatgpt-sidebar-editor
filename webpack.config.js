@@ -4,7 +4,7 @@ const path = require("path");
 
 const isDevelopment = process.env.NODE_ENV === 'development';
 // 1. 出力先ディレクトリを環境に応じて決定
-const outputDir = isDevelopment 
+const outputDir = isDevelopment
   ? 'dist/devel' // 開発用
   : 'dist/prod';  // 公開用 (本番環境に提出するディレクトリ)
 
@@ -17,17 +17,28 @@ module.exports = {
   },
   module: {
     rules: [
+      // === React(JSX)用 ===
       {
         test: /\.jsx?$/,
         exclude: /node_modules/,
         use: {
-          loader: 'babel-loader',
+          loader: "babel-loader",
           options: {
-            presets: ['@babel/preset-react']
-          }
-        }
-      }
-    ]
+            presets: ["@babel/preset-react"],
+          },
+        },
+      },
+
+      // === Tailwind + PostCSS 用 ===
+      {
+        test: /\.css$/i,
+        use: [
+          "style-loader",   // <style> タグとして埋め込む
+          "css-loader",     // CSSをJSに取り込む
+          "postcss-loader", // Tailwind + autoprefixer を通す
+        ],
+      },
+    ],
   },
   resolve: {
     extensions: [".js", ".jsx"],
@@ -39,19 +50,24 @@ module.exports = {
   },
   plugins: [
     new HtmlWebpackPlugin({
-      template: "src/app/template.html", 
+      template: "src/app/template.html",
       filename: "sidepanel.html",
-      chunks: ['sidepanel']}),
+      chunks: ['sidepanel'],
+      inject: "body", // ✅ ← これが重要！
+    }),
 
 
     new HtmlWebpackPlugin({
-      template: "src/app/template.html", 
+      template: "src/app/template.html",
       filename: "settings.html",
-      chunks: ['settings']}),
+      chunks: ['settings'],
+      inject: "body", // ✅ ← これが重要！
+    }),
 
     new CopyWebpackPlugin({
       patterns: [
-        { from: 'public/manifest-master.json', to: "manifest.json",
+        {
+          from: 'public/manifest-master.json', to: "manifest.json",
           transform: (content, path) => {
             // content は manifest.json のバッファ（Buffer）なので、文字列に変換
             const manifest = JSON.parse(content.toString());
@@ -62,7 +78,7 @@ module.exports = {
             return JSON.stringify(manifest, null, 2);
           },
         },
-        
+
         { from: "public/icons/**/*", to: "[name][ext]" },
         { from: "src/app/content.js", to: "content.js" },
 

@@ -1,46 +1,56 @@
 // background/sync.js
+
 import { API } from "./api.js";
-import { Storage } from "./storage.js";
+import { BookmarksStorageService } from "./storage/bookmarksStorageService.js";
 
-export const Sync = {
-  async syncToServer() {
-    const bookmarks = await Storage.getBookmarks();
+console.log("⏰ Sync scheduler loaded");
 
-    console.log("🔼 Uploading local → server ...");
+// 15分おきに同期チェック
+chrome.alarms.create("periodicSync", { periodInMinutes: 5 });
 
-    // グループ
-    const groups = Object.entries(bookmarks).map(([id, g]) => ({
-      id,
-      name: g.name,
-    }));
-    for (const g of groups) await API.createGroup(g);
+// アラームイベントを受け取る
+chrome.alarms.onAlarm.addListener((alarm) => {
+  if (alarm.name === "periodicSync") {
+    console.log("🔄 Running scheduled sync...");
+    performSync();
+  }
+});
 
-    // アイテム
-    for (const [groupId, g] of Object.entries(bookmarks)) {
-      for (const item of g.items) {
-        await API.createItem({ ...item, group_id: groupId });
+// === 実際の同期ロジック ===
+async function performSync(maxRetries = 3) {
+  const bookmarks = await BookmarksStorageService.getBookmarks();
+  const payload = { "ai-chat-editor-plus": bookmarks };
+
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      console.log(`🚀 Sync attempt ${attempt} / ${maxRetries}...`);
+      const res = await API.request(
+        "/users/fdbf0f79-1a20-4d3a-8e7d-521664257a0d/snapshot",
+        "POST",
+        payload
+      );
+
+      // 成功判定
+      if (res.ok || res.status === "success" || res.snapshot_id) {
+        console.log("✅ Background sync success");
+        return;
+      } else {
+        console.warn(`⚠️ Server responded but not OK (try ${attempt})`);
       }
+    } catch (err) {
+      console.warn(`❌ Attempt ${attempt} failed: ${err.message}`);
     }
 
-    console.log("✅ Synced local → server");
-    return true;
-  },
+    // === リトライ間隔（指数バックオフ） ===
+    const delay = attempt * 5000; // 5s, 10s, 15s
+    console.log(`⏳ Retrying in ${delay / 1000}s...`);
+    await sleep(delay);
+  }
 
-  async syncFromServer() {
-    console.log("🔽 Downloading server → local ...");
+  console.error("❌ Background sync failed after all retries");
+}
 
-    const groups = await API.getGroups();
-    const state = {};
-
-    for (const g of groups) {
-      state[g.id] = {
-        name: g.name,
-        items: g.items || [],
-      };
-    }
-
-    await Storage.saveBookmarks(state);
-    console.log("✅ Synced server → local");
-    return state;
-  },
-};
+// === ユーティリティ ===
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
