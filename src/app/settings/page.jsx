@@ -118,15 +118,19 @@ const handleApplyPreviewToLocal = async () => {
 };
 
 
+
+
+
 // === サーバーへ書き込み ===
 const handleSaveToServer = async () => {
   try {
+    // 0️⃣ プレビューが空なら中断
     if (!jsonPreview) {
       setStatus("⚠️ プレビューにデータがありません");
       return;
     }
 
-    // 1️⃣ JSONを解析（安全チェック）
+    // 1️⃣ JSONを安全にパース
     let parsed;
     try {
       parsed = JSON.parse(jsonPreview);
@@ -134,10 +138,24 @@ const handleSaveToServer = async () => {
       throw new Error("プレビュー内容が有効なJSONではありません。");
     }
 
-    // 2️⃣ ai-chat-editor-plus の中身だけを抽出
-    const snapshotData = { "ai-chat-editor-plus": parsed };
+    // 2️⃣ snapshot_data 内の ai-chat-editor-plus を安全に抽出
+    let snapshotCore;
+    if (parsed?.snapshot_data?.["ai-chat-editor-plus"]) {
+      snapshotCore = parsed.snapshot_data["ai-chat-editor-plus"];
+    } else if (parsed?.["ai-chat-editor-plus"]) {
+      // 念のため、直下にある場合にも対応
+      snapshotCore = parsed["ai-chat-editor-plus"];
+    } else {
+      throw new Error("ai-chat-editor-plus データが見つかりません。");
+    }
 
-    // 3️⃣ POST送信
+    // 3️⃣ サーバー送信用オブジェクトを構築
+    const snapshotData = { "ai-chat-editor-plus": snapshotCore };
+
+    console.log("📦 Final snapshotData for POST:", snapshotData);
+
+
+    // 4️⃣ サーバーへPOST送信
     setStatus("🚀 サーバーへデータを送信中…");
 
     const res = await fetch(
@@ -149,13 +167,22 @@ const handleSaveToServer = async () => {
       }
     );
 
+    // 5️⃣ レスポンス検証
     if (!res.ok) {
       const text = await res.text();
       throw new Error(`HTTP ${res.status}: ${text}`);
     }
 
     const result = await res.json();
-    setStatus(`✅ サーバーへ保存完了（ID: ${result.snapshot_id || "不明"}）`);
+    console.log("✅ Server response:", result);
+
+    // 6️⃣ 結果に応じてUI反映
+    if (result.ok || result.snapshot_id) {
+      setStatus(`✅ サーバーへ保存完了（snapshot_id: ${result.snapshot_id || "不明"}）`);
+    } else {
+      setStatus("⚠️ サーバー応答に異常があります（保存は完了した可能性あり）");
+    }
+
   } catch (err) {
     console.error("❌ handleSaveToServer Error:", err);
     setStatus(`❌ サーバー書き込みエラー: ${err.message}`);
