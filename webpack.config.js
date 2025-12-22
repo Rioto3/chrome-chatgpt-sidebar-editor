@@ -82,6 +82,8 @@ module.exports = {
             // 🌟 ここで変数を埋め込む 🌟
             // package.json からバージョンを取得して埋め込む
             manifest.version = require('./package.json').version;
+            manifest.name = require('./package.json').name;
+            manifest.description = require('./package.json').description;
             // JSON文字列に戻して返す
             return JSON.stringify(manifest, null, 2);
           },

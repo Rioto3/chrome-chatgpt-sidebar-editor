@@ -1,8 +1,5 @@
 {
   "manifest_version": 3,
-  "name": "AIチャットエディタ＋ for マイGPT",
-  "version": "1.0.0",
-  "description": "エディタの拡張＋マイGPTチャットをプロジェクトに整理",
   "permissions": [
     "activeTab",
     "storage",
