@@ -91,6 +91,51 @@ const SettingsPage = () => {
     }
   };
 
+
+const handleApplyPreviewToLocal = async () => {
+  try {
+    if (!jsonPreview) {
+      setStatus("⚠️ プレビューにデータがありません");
+      return;
+    }
+
+    // ① 一段階目のパース
+    let parsed = JSON.parse(jsonPreview);
+
+    // ② 中身がさらに文字列なら再パース
+    if (typeof parsed === "string") {
+      try {
+        parsed = JSON.parse(parsed);
+      } catch {
+        throw new Error("JSON文字列の二重構造を解釈できませんでした。");
+      }
+    }
+
+    // ③ ai-chat-editor-plus のみ抽出
+    let extracted;
+    if (parsed.snapshot_data && parsed.snapshot_data["ai-chat-editor-plus"]) {
+      extracted = parsed.snapshot_data["ai-chat-editor-plus"];
+    } else if (parsed["ai-chat-editor-plus"]) {
+      extracted = parsed["ai-chat-editor-plus"];
+    } else {
+      // そのまま直接格納
+      extracted = parsed;
+    }
+
+    // ④ ローカルストレージに保存
+    await chrome.storage.local.set({ "ai-chat-editor-plus": extracted });
+
+    setStatus("✅ プレビュー文字列を二重解析し、ai-chat-editor-plus データを保存しました");
+  } catch (err) {
+    console.error("❌ handleApplyPreviewToLocal Error:", err);
+    setStatus(`❌ ローカル反映エラー: ${err.message}`);
+  }
+};
+
+
+
+
+
   return (
     <div className="min-h-screen bg-gray-50 text-gray-800 p-6">
       {/* Tailwindチェック用 */}
@@ -153,13 +198,25 @@ const SettingsPage = () => {
         </button>
       </section>
 
-      {/* === JSON Preview === */}
-      <section id="jsonPreview" className="mb-6">
-        <h2 className="text-base font-semibold mb-2">🧩 現在のJSONプレビュー</h2>
-        <pre className="bg-gray-900 text-green-300 text-sm rounded p-4 overflow-auto max-h-[300px] font-mono whitespace-pre-wrap">
-          {jsonPreview || "（まだデータがありません）"}
-        </pre>
-      </section>
+{/* === JSON Preview === */}
+<section id="jsonPreview" className="mb-6">
+  <h2 className="text-lg font-semibold mb-2">🧩 現在のJSONプレビュー</h2>
+
+  <pre className="bg-gray-900 text-green-300 text-sm rounded p-4 overflow-auto max-h-[300px] font-mono whitespace-pre-wrap">
+    {jsonPreview || "（まだデータがありません）"}
+  </pre>
+
+  {/* 💾 プレビュー内容をローカルに反映するボタン */}
+  <div className="mt-3 flex justify-end">
+    <button
+      onClick={handleApplyPreviewToLocal}
+      className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded transition text-sm"
+    >
+      💾 このプレビューをアドオンに反映
+    </button>
+  </div>
+</section>
+
 
       {/* === Status Bar === */}
       <div className="text-sm text-gray-700 italic">{status}</div>
