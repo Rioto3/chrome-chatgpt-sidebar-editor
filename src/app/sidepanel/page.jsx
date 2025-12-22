@@ -6,9 +6,6 @@ import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 import { createHandleKeyDown } from "./keyboardShortcuts";
 
 
-
-const API_SYNC = true;
-
 const SidepanelAsPage = () => {
   const [folders, setFolders] = useState({});
   const [currentFolder, setCurrentFolder] = useState("default");
@@ -85,13 +82,6 @@ const addFolder = () => {
     saveState(newFolders);
     setCurrentFolder(id);
 
-    // ✅ フォルダ作成時のサーバ同期
-    if (API_SYNC) {
-      chrome.runtime.sendMessage({
-        type: "GROUP_CREATE",
-        payload: { id, name },
-      });
-    }
   }, 10);
 };
 
@@ -107,13 +97,6 @@ const renameFolder = () => {
     const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
     saveState(updated);
 
-    // 🔥 フォルダ名変更時のサーバ同期を追加
-    if (API_SYNC) {
-      chrome.runtime.sendMessage({
-        type: "GROUP_UPDATE",
-        payload: { id: currentFolder, data: { name: newName } },
-      });
-    }
   }, 10);
 };
 
@@ -130,13 +113,6 @@ const renameFolder = () => {
       setCurrentFolder(fallback);
       saveState(newFolders);
 
-      // 🗑 サーバにも削除通知
-      if (API_SYNC) {
-        chrome.runtime.sendMessage({
-          type: "SYNC_DELETE",
-          payload: { id: currentFolder },
-        });
-      }
     }, 10);
   };
 
@@ -162,17 +138,6 @@ const renameFolder = () => {
       };
       saveState(updated);
 
-
-      // ✅ アイテム作成時のサーバ同期
-      if (API_SYNC) {
-        chrome.runtime.sendMessage({
-          type: "ITEM_CREATE",
-          payload: {
-            groupId: currentFolder,
-            item: newItem,
-          },
-        });
-      }
     });
   };
 
@@ -192,16 +157,6 @@ const renameFolder = () => {
       saveState(newFolders);
     }
 
-    // ✅ アイテム名変更時のサーバ同期
-    if (API_SYNC) {
-      chrome.runtime.sendMessage({
-        type: "ITEM_UPDATE",
-        payload: {
-          itemId: editingBookmark,
-          data: { name: editingValue.trim() },
-        },
-      });
-    }
     setEditingBookmark(null);
     setEditingValue("");
   };
@@ -221,13 +176,6 @@ const renameFolder = () => {
     };
     saveState(newFolders);
 
-    // ✅ アイテム削除時のサーバ同期
-    if (API_SYNC) {
-      chrome.runtime.sendMessage({
-        type: "ITEM_DELETE",
-        payload: { itemId: item.id },
-      });
-    }
   };
 
   // ===== 並び替え =====
