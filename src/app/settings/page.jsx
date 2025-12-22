@@ -47,30 +47,23 @@ const SettingsPage = () => {
   };
 
   // === JSONインポート ===
-  const handleImport = (event) => {
-    const file = event.target.files[0];
-    if (!file) return;
+const handleJsonImport = (event) => {
+  const file = event.target.files[0];
+  if (!file) return;
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      try {
-        const data = JSON.parse(e.target.result);
-        const update = {};
-        if (data.bookmarksState) update.bookmarksState = data.bookmarksState;
-        if (data.prompt) update.prompt = data.prompt;
-
-        chrome.storage.local.set(update, () => {
-          setStatus(
-            `✅ ${file.name} をインポートしました（Sidepanelを再読み込みしてください）`
-          );
-          setJsonPreview(JSON.stringify(data, null, 2));
-        });
-      } catch (err) {
-        setStatus(`❌ インポートエラー: ${err.message}`);
-      }
-    };
-    reader.readAsText(file);
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      // 🪞 保存せず、プレビューだけ更新
+      setJsonPreview(JSON.stringify(data, null, 2));
+      setStatus(`✅ ${file.name} をプレビューに読み込みました`);
+    } catch (err) {
+      setStatus(`❌ インポートエラー: ${err.message}`);
+    }
   };
+  reader.readAsText(file);
+};
 
   // === サーバーからデータを取得 ===
   const handleLoadFromServer = async () => {
@@ -171,7 +164,7 @@ const handleApplyPreviewToLocal = async () => {
             <input
               type="file"
               accept=".json"
-              onChange={handleImport}
+              onChange={handleJsonImport}
               className="hidden"
             />
           </label>
