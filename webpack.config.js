@@ -44,11 +44,19 @@ module.exports = {
     extensions: [".js", ".jsx"],
   },
   entry: {
+    popup: './src/app/popup/page.jsx',
     settings: './src/app/settings/page.jsx',
     sidepanel: './src/app/sidepanel/page.jsx',
     background: './src/app/background/index.js',
   },
   plugins: [
+    new HtmlWebpackPlugin({
+      template: "src/app/template.html",
+      filename: "popup.html",
+      chunks: ['popup'],
+      inject: "body", // ✅ ← これが重要！
+    }),
+
     new HtmlWebpackPlugin({
       template: "src/app/template.html",
       filename: "sidepanel.html",

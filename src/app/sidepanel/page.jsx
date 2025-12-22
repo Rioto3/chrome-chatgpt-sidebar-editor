@@ -286,31 +286,7 @@ const renameFolder = () => {
         fontFamily: "sans-serif",
       }}
     >
-      {/* ヘッダー部分（右上に設定ボタン） */}
-      <div
-        style={{
-          display: "flex",
-          justifyContent: "flex-end",
-          alignItems: "center",
-          padding: "0.3rem 0.5rem",
-          position: "sticky",
-          top: 0,
-          zIndex: 10,
-        }}
-      >
-        <button
-          onClick={() => chrome.runtime.openOptionsPage()}
-          title="設定を開く"
-          style={{
-            border: "none",
-            background: "transparent",
-            cursor: "pointer",
-            fontSize: "12px",
-          }}
-        >
-          ⚙️
-        </button>
-      </div>
+    
 
       {/* 上部：お気に入り */}
       <div

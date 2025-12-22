@@ -15,6 +15,7 @@
     "https://v1.api.tubeclip.win/*",
     "https://api.tubeclip.win/*"
   ],
+  
   "background": {
     "scripts": [
       "background.js"
@@ -30,10 +31,16 @@
       "128": "icon-128x128.png"
     }
   },
+
+
   "action": {
+    "default_popup": "popup.html",
     "default_title": "AIチャットエディタ＋ for マイGPT",
     "default_icon": {
-      "16": "icon-16x16.png"
+    "16": "icon-16x16.png",
+    "32": "icon-32x32.png",
+    "48": "icon-48x48.png",
+    "128": "icon-128x128.png"
     }
   },
   "options_ui": {
