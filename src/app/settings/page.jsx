@@ -14,30 +14,6 @@ const SettingsPage = () => {
     });
   }, []);
 
-// === DB同期（サーバ取得 → ローカル保存 → プレビュー更新） ===
-const handleDbSync = () => {
-  setStatus("🔄 DB同期を実行中…");
-
-  chrome.runtime.sendMessage({ type: "SYNC_FROM_SERVER" }, (response) => {
-    if (chrome.runtime.lastError) {
-      setStatus("❌ 通信エラー（background 未応答）");
-      console.error(chrome.runtime.lastError);
-      return;
-    }
-
-    if (!response?.ok) {
-      setStatus("❌ 同期エラー: " + response?.error);
-      return;
-    }
-
-    // background 側でローカル保存済み → 最新データを読み直す
-    chrome.storage.local.get(["bookmarksState", "prompt"], (data) => {
-      setJsonPreview(JSON.stringify(data, null, 2));
-      setStatus("✅ サーバー → ローカルへ同期完了");
-    });
-  });
-};
-
 
   // === JSONエクスポート ===
   const handleExport = () => {
@@ -91,10 +67,15 @@ const handleDbSync = () => {
 
   return (
     <div style={{ padding: "1.5rem", fontFamily: "sans-serif", lineHeight: 1.6 }}>
-      <h2>⚙️ 設定</h2>
-      <p>ブックマークとプロンプトのバックアップ／復元を行えます。</p>
 
-      <div style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+      <div id="headerSection">
+        <h2>⚙️ 設定</h2>
+      </div>
+
+
+      <div id="localJsonSection" style={{ display: "flex", gap: "1rem", marginTop: "1rem" }}>
+        <p>ブックマークとプロンプトのバックアップ／復元を行えます。</p>
+
         <button onClick={handleExport}>📤 JSONをエクスポート</button>
 
         <label style={{ cursor: "pointer" }}>
@@ -108,27 +89,30 @@ const handleDbSync = () => {
         </label>
       </div>
 
+      <div id="dbSection">
+        <p>ここにデータベースに関する機能</p>
+      </div>
 
-      <button onClick={handleDbSync}>🔄 DB同期</button>
+      <div id="previewSection">
+        <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
 
-      <p style={{ marginTop: "1rem", fontSize: "0.9rem", color: "#555" }}>{status}</p>
-
-      <textarea
-        readOnly
-        value={jsonPreview}
-        placeholder="現在の保存データ、またはインポートした内容がここに表示されます"
-        style={{
-          width: "100%",
-          height: "320px",
-          fontFamily: "monospace",
-          fontSize: "13px",
-          marginTop: "0.5rem",
-          padding: "0.5rem",
-          borderRadius: "6px",
-          border: "1px solid #ccc",
-          background: "#fafafa",
-        }}
-      />
+        <textarea
+          readOnly
+          value={jsonPreview}
+          placeholder="現在の保存データ、またはインポートした内容がここに表示されます"
+          style={{
+            width: "100%",
+            height: "320px",
+            fontFamily: "monospace",
+            fontSize: "13px",
+            marginTop: "0.5rem",
+            padding: "0.5rem",
+            borderRadius: "6px",
+            border: "1px solid #ccc",
+            background: "#fafafa",
+          }}
+        />
+      </div>
     </div>
   );
 };
