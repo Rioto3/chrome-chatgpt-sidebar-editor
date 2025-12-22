@@ -6,7 +6,7 @@ import { BookmarksStorageService } from "./storage/bookmarksStorageService.js";
 console.log("⏰ Sync scheduler loaded");
 
 // 15分おきに同期チェック
-chrome.alarms.create("periodicSync", { periodInMinutes: 15 });
+chrome.alarms.create("periodicSync", { periodInMinutes: 5 });
 
 // アラームイベントを受け取る
 chrome.alarms.onAlarm.addListener((alarm) => {
