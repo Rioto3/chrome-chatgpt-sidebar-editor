@@ -34,6 +34,36 @@ export const createHandleKeyDown = ({
   return (e) => {
 
 
+    const getCurrentLineRange = (text, cursorPos) => {
+  const start = text.lastIndexOf("\n", cursorPos - 1) + 1;
+  const endIdx = text.indexOf("\n", cursorPos);
+  const end = endIdx === -1 ? text.length : endIdx;
+  return { start, end };
+};
+
+const toggleHtmlCommentOnLine = (text, cursorPos) => {
+  const { start, end } = getCurrentLineRange(text, cursorPos);
+  const line = text.slice(start, end);
+
+  const trimmed = line.trim();
+
+  // すでにコメントアウトされている場合 → 外す
+  if (trimmed.startsWith("<%Comment--") && trimmed.endsWith("-->")) {
+    const uncommented = trimmed
+      .replace(/^<%Comment--\s?/, "")
+      .replace(/\s?-->$/, "");
+    return text.slice(0, start) + uncommented + text.slice(end);
+  }
+
+  // コメントを付ける
+  return (
+    text.slice(0, start) +
+    `<%Comment-- ${trimmed} -->` +
+    text.slice(end)
+  );
+};
+
+
 
 // ===== ctrl + - → 全角連番 =====
 if (e.ctrlKey && e.key === "=" && !e.shiftKey) {
@@ -67,6 +97,22 @@ if (e.ctrlKey && e.key === "-" && !e.shiftKey) {
 }
 
 
+    // ===== Ctrl + / → コメントアウト（md/html） =====
+    if (e.key === "/" && !e.shiftKey) {
+      e.preventDefault();
+
+      const textarea = e.target;
+      const cursorPos = textarea.selectionStart;
+      const current = getPromptText();
+
+      const next = toggleHtmlCommentOnLine(current, cursorPos);
+
+      setPromptText(next);
+      chrome.storage.local.set({ prompt: next });
+      return;
+    }
+
+    
     // ===== ⌘ + Enter 系 =====
     if (e.metaKey && e.key === "Enter") {
       e.preventDefault();
