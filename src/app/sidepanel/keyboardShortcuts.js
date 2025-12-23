@@ -98,7 +98,7 @@ if (e.ctrlKey && e.key === "-" && !e.shiftKey) {
 
 
     // ===== Ctrl + / → コメントアウト（md/html） =====
-    if (e.key === "/" && !e.shiftKey) {
+    if (e.ctrlKey && e.key === "/" && !e.shiftKey) {
       e.preventDefault();
 
       const textarea = e.target;
