@@ -1,3 +1,5 @@
+// src/app/sidepanel/keyboardShortcuts.js
+// https://chatgpt.com/c/69496897-8a24-8321-b102-004c4b388328
 const ZENKAKU_NUMS = ["０","１","２","３","４","５","６","７","８","９"];
 
 const toZenkakuNumber = (num) =>
@@ -30,8 +32,11 @@ export const createHandleKeyDown = ({
   sendPrompt,
 }) => {
   return (e) => {
-    // ===== ⌘ + = → === =====
-    if (e.metaKey && e.key === "=" && !e.shiftKey) {
+
+
+
+// ===== ctrl + - → 全角連番 =====
+if (e.ctrlKey && e.key === "=" && !e.shiftKey) {
       e.preventDefault();
 
       const current = getPromptText();
@@ -45,8 +50,9 @@ export const createHandleKeyDown = ({
       return;
     }
 
-    // ===== ⌘ + / → 全角連番 =====
-if (e.metaKey && e.key === "/" && !e.shiftKey) {
+
+// ===== ctrl + - → 全角連番 =====
+if (e.ctrlKey && e.key === "-" && !e.shiftKey) {
   e.preventDefault();
 
   const current = getPromptText();
