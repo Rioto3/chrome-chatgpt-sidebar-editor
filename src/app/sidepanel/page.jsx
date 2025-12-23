@@ -69,7 +69,7 @@ useEffect(() => {
 
 const saveState = (newFolders) => {
   setFolders(newFolders);
-  chrome.storage.local.set({ bookmarksState: newFolders });
+  chrome.storage.local.set({ "ai-chat-editor-plus": newFolders });
 };
 
 
