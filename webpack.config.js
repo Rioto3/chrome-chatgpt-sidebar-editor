@@ -48,6 +48,7 @@ module.exports = {
     settings: './src/app/settings/page.jsx',
     sidepanel: './src/app/sidepanel/page.jsx',
     background: './src/app/background/index.js',
+    content: './src/app/content/main.js',
   },
   plugins: [
     new HtmlWebpackPlugin({
@@ -90,7 +91,7 @@ module.exports = {
         },
 
         { from: "public/icons/**/*", to: "[name][ext]" },
-        { from: "src/app/content.js", to: "content.js" },
+        // { from: "src/app/content.js", to: "content.js" },
 
       ],
     }),
