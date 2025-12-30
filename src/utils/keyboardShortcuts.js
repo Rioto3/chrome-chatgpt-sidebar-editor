@@ -91,6 +91,13 @@ const toggleHtmlCommentOnLine = (text, cursorPos) => {
  */
 export const createKeyboardHandler = ({ getText, setText, onSubmit, storageKey = null }) => {
   return (e) => {
+    // ===== Enter単体を無効化（改行のみ） =====
+    if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey && !e.altKey) {
+      // デフォルトの送信動作を防止（改行は許可）
+      // ※ textareaやcontenteditable要素では改行は自動で挿入される
+      return;
+    }
+
     // ===== Ctrl + = → 区切り線挿入 =====
     if (e.ctrlKey && e.key === "=" && !e.shiftKey) {
       e.preventDefault();
