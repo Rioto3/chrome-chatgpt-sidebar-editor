@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { createRoot } from "react-dom/client";
 import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
 
-import { createHandleKeyDown } from "./keyboardShortcuts";
+import { createKeyboardHandler } from "../../utils/keyboardShortcuts";
 
 
 const SidepanelAsPage = () => {
@@ -242,10 +242,11 @@ const renameFolder = () => {
 //   }
 // };
 
-const handleKeyDown = createHandleKeyDown({
-  getPromptText: () => promptText,
-  setPromptText,
-  sendPrompt,
+const handleKeyDown = createKeyboardHandler({
+  getText: () => promptText,
+  setText: setPromptText,
+  onSubmit: sendPrompt,
+  storageKey: 'prompt',
 });
 
 
