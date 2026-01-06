@@ -1,6 +1,6 @@
 {
-  "version": "2.0.7",
-  "name": "AIチャットエディタ＋ for マイGPT",
+  "version": "2.0.8",
+  "name": "ai-chat-editor-plus",
   "description": "エディタの拡張＋マイGPTチャットをプロジェクトに整理",
   "scripts": {
     "dev": "NODE_ENV=development webpack --watch & sleep 1 && web-ext run --source-dir=dist/devel",
