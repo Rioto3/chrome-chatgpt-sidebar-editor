@@ -13,7 +13,9 @@ const SidepanelAsPage = () => {
   const [editingBookmark, setEditingBookmark] = useState(null);
   const [editingValue, setEditingValue] = useState("");
 
-  const [textareaHeight, setTextareaHeight] = useState(150); // px単位
+  // const [textareaHeight, setTextareaHeight] = useState(150); // px単位
+  const [textareaHeight, setTextareaHeight] = useState(250); // px単位
+
 
   // ===== テキストエリアのリサイズ用エフェクト =====
   useEffect(() => {
