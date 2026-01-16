@@ -86,7 +86,7 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'public/manifest-master.json', to: "manifest.json",
+          from: 'public/manifests/master.json', to: "manifest.json",
           transform: (content, path) => {
             // content は manifest.json のバッファ（Buffer）なので、文字列に変換
             const manifest = JSON.parse(content.toString());
