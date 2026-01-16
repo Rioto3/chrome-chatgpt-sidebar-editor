@@ -1,29 +1,31 @@
 # ============================================================
-#  Makefile for Firefox Add-on Build (Version Directory)
+#  Makefile for Browser Extension Release
 #
-#  dist/v<version>/distribution.xpi
-#  dist/v<version>/for-check.zip
-#
-#  <version> は package.json の "version" を自動取得
+#  build/<platform>/<env>/        ← webpack output
+#  release/<platform>/v<version>/ ← distributables
 # ============================================================
 
-# version from package.json
+# ------------------------------------------------------------
+# Variables
+# ------------------------------------------------------------
+
+PLATFORM ?= firefox
+ENV ?= production
+
 VERSION := $(shell node -p "require('./package.json').version")
 
-# Directory → dist/v1.0.1/
-DIST_ROOT := dist
-DIST_DIR := $(DIST_ROOT)/v$(VERSION)
+# build output (webpack)
+BUILD_ROOT := build
+BUILD_DIR := $(BUILD_ROOT)/$(PLATFORM)/$(ENV)
 
-# Build output directory from npm
-PROD_DIR := dist/prod
+# release output
+RELEASE_ROOT := release
+RELEASE_DIR := $(RELEASE_ROOT)/$(PLATFORM)/v$(VERSION)
 
-# Output files
-XPI_OUT := $(DIST_DIR)/distribution.xpi
-ZIP_OUT := $(DIST_DIR)/for-check.zip
+XPI_OUT := $(RELEASE_DIR)/distribution.xpi
+ZIP_OUT := $(RELEASE_DIR)/for-check.zip
 
-# Files included in metadata ZIP
 META_FILES := src package.json package-lock.json README.md Makefile
-
 
 # ------------------------------------------------------------
 # Main target
@@ -31,40 +33,38 @@ META_FILES := src package.json package-lock.json README.md Makefile
 build: prep npm-build xpi zip
 	@echo "----------------------------------------------"
 	@echo " Build completed:"
-	@echo "   XPI: $(XPI_OUT)"
-	@echo "   ZIP: $(ZIP_OUT)"
+	@echo "   PLATFORM : $(PLATFORM)"
+	@echo "   VERSION  : v$(VERSION)"
+	@echo "   XPI      : $(XPI_OUT)"
+	@echo "   ZIP      : $(ZIP_OUT)"
 	@echo "----------------------------------------------"
 
-
 # ------------------------------------------------------------
-# Prepare output folder
+# Prepare release directory
 # ------------------------------------------------------------
 prep:
-	@mkdir -p $(DIST_DIR)
-	@echo "[prep] Created: $(DIST_DIR)"
-
+	@mkdir -p $(RELEASE_DIR)
+	@echo "[prep] Created: $(RELEASE_DIR)"
 
 # ------------------------------------------------------------
 # npm production build
 # ------------------------------------------------------------
 npm-build:
-	@echo "[npm] Running npm run build:prod ..."
-	npm run build:prod
+	@echo "[npm] Running build ($(PLATFORM), $(ENV))..."
+	PLATFORM=$(PLATFORM) NODE_ENV=$(ENV) npm run build:prod:$(PLATFORM)
 	@echo "[npm] Build OK"
-
 
 # ------------------------------------------------------------
 # Create distribution.xpi
 # ------------------------------------------------------------
 xpi:
-	@if [ ! -d "$(PROD_DIR)" ]; then \
-		echo "ERROR: $(PROD_DIR) not found. Build failed?"; \
+	@if [ ! -d "$(BUILD_DIR)" ]; then \
+		echo "ERROR: $(BUILD_DIR) not found. Build failed?"; \
 		exit 1; \
 	fi
 	@echo "[xpi] Creating $(XPI_OUT)"
-	cd $(PROD_DIR) && zip -r ../../$(XPI_OUT) .
+	cd $(BUILD_DIR) && zip -r ../../../$(XPI_OUT) .
 	@echo "[xpi] XPI created"
-
 
 # ------------------------------------------------------------
 # Create for-check.zip
@@ -74,13 +74,11 @@ zip:
 	zip -r $(ZIP_OUT) $(META_FILES)
 	@echo "[zip] ZIP created"
 
-
 # ------------------------------------------------------------
-# Remove dist directory
+# Clean
 # ------------------------------------------------------------
 clean:
-	rm -rf $(DIST_ROOT)
-	@echo "[clean] dist/ removed"
-
+	rm -rf $(RELEASE_ROOT)
+	@echo "[clean] release/ removed"
 
 # EOF
