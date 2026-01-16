@@ -8,6 +8,16 @@ console.log("🧠 Background service loaded.");
 
 chrome.runtime.onInstalled.addListener(() => {
   console.log("🚀 Extension installed.");
+
+  // ★ これを追加
+  chrome.sidePanel.setPanelBehavior({
+    openPanelOnActionClick: true,
+  });
+});
+
+
+chrome.runtime.onInstalled.addListener(() => {
+  console.log("🚀 Extension installed.");
 });
 // 🔥 サイドパネルからのメッセージを受け取る
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

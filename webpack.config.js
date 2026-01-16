@@ -1,18 +1,45 @@
+// webpack.config.js
+const fs = require("fs");
+const nodePath = require("path");
+
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const path = require("path");
 
-const isDevelopment = process.env.NODE_ENV === 'development';
+function deepMerge(target, source) {
+  for (const key of Object.keys(source)) {
+    if (
+      source[key] &&
+      typeof source[key] === "object" &&
+      !Array.isArray(source[key])
+    ) {
+      target[key] = deepMerge(target[key] || {}, source[key]);
+    } else {
+      target[key] = source[key];
+    }
+  }
+  return target;
+}
+
 // 1. 出力先ディレクトリを環境に応じて決定
-const outputDir = isDevelopment
-  ? 'dist/devel' // 開発用
-  : 'dist/prod';  // 公開用 (本番環境に提出するディレクトリ)
+const platform = process.env.PLATFORM;
+const environment = process.env.NODE_ENV;
+
+if (!platform) {
+  throw new Error("PLATFORM is not set (firefox | chrome)");
+}
+
+if (!environment) {
+  throw new Error("NODE_ENV is not set (development | production)");
+}
+
+const outputDir = `build/${platform}/${environment}`;
+
 
 module.exports = {
   devtool: "cheap-module-source-map", // または "source-map"
-  mode: 'development',
+  mode: environment === "production" ? "production" : "development",
   output: {
-    path: path.resolve(__dirname, outputDir),
+    path: nodePath.resolve(__dirname, outputDir),
     filename: '[name].js'
   },
   module: {
@@ -76,17 +103,33 @@ module.exports = {
     new CopyWebpackPlugin({
       patterns: [
         {
-          from: 'public/manifest-master.json', to: "manifest.json",
-          transform: (content, path) => {
-            // content は manifest.json のバッファ（Buffer）なので、文字列に変換
+          from: 'public/manifests/master.json', to: "manifest.json",
+          transform: (content, resourcePath) => {
+            const pkg = require("./package.json");
             const manifest = JSON.parse(content.toString());
+            // platform diff
+            const platformManifestPath = nodePath.resolve(
+              __dirname,
+              `public/manifests/${platform}.json`
+            );
+            if (!fs.existsSync(platformManifestPath)) {
+              throw new Error(`Missing manifest diff: ${platform}.json`);
+            }
+
+            const platformManifest = JSON.parse(
+              fs.readFileSync(platformManifestPath, "utf-8")
+            );
+
+            // merge
+            const merged = deepMerge(manifest, platformManifest);
+
             // 🌟 ここで変数を埋め込む 🌟
             // package.json からバージョンを取得して埋め込む
-            manifest.version = require('./package.json').version;
-            manifest.name = require('./package.json').name;
-            manifest.description = require('./package.json').description;
+              merged.version = pkg.version;
+              merged.name = pkg.name;
+              merged.description = pkg.description;
             // JSON文字列に戻して返す
-            return JSON.stringify(manifest, null, 2);
+            return JSON.stringify(merged, null, 2);
           },
         },
 
