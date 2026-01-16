@@ -3,9 +3,9 @@
   "name": "ai-chat-editor-plus",
   "description": "エディタの拡張＋マイGPTチャットをプロジェクトに整理",
   "scripts": {
-    "dev": "NODE_ENV=development webpack --watch & sleep 1 && web-ext run --source-dir=dist/devel",
-    "build:devel": "NODE_ENV=development webpack",
-    "build:prod": "NODE_ENV=production webpack"
+    "dev:firefox": "NODE_ENV=development webpack --watch & sleep 1 && web-ext run --source-dir=dist/devel",
+    "build:devel:firefox": "NODE_ENV=development webpack",
+    "build:prod:firefox": "NODE_ENV=production webpack"
   },
   "devDependencies": {
     "@babel/core": "^7.0.0",
