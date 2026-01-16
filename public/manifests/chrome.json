@@ -1,5 +1,9 @@
 {
   "permissions": [
+    "activeTab",
+    "storage",
+    "tabs",
+    "alarms",
     "sidePanel"
   ],
   "background": {
