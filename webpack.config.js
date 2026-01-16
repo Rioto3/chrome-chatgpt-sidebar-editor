@@ -1,12 +1,22 @@
+// webpack.config.js
+const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const path = require("path");
 
-const isDevelopment = process.env.NODE_ENV === 'development';
 // 1. 出力先ディレクトリを環境に応じて決定
-const outputDir = isDevelopment
-  ? 'dist/devel' // 開発用
-  : 'dist/prod';  // 公開用 (本番環境に提出するディレクトリ)
+const platform = process.env.PLATFORM;
+const environment = process.env.NODE_ENV;
+
+if (!platform) {
+  throw new Error("PLATFORM is not set (firefox | chrome)");
+}
+
+if (!environment) {
+  throw new Error("NODE_ENV is not set (development | production)");
+}
+
+const outputDir = `build/${platform}/${environment}`;
+
 
 module.exports = {
   devtool: "cheap-module-source-map", // または "source-map"
