@@ -16,6 +16,18 @@ const SidepanelAsPage = () => {
   // const [textareaHeight, setTextareaHeight] = useState(150); // px単位
   const [textareaHeight, setTextareaHeight] = useState(250); // px単位
 
+    // folders がロードされたら、必ず currentFolder を同期する
+useEffect(() => {
+  const folderIds = Object.keys(folders || {});
+  if (folderIds.length === 0) return;
+
+  // currentFolder が未設定 or 存在しない場合は先頭を採用
+  if (!folders[currentFolder]) {
+    setCurrentFolder(folderIds[0]);
+  }
+}, [folders]);
+
+
 
   // ===== テキストエリアのリサイズ用エフェクト =====
   useEffect(() => {
