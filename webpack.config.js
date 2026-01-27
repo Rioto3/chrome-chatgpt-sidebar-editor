@@ -75,7 +75,7 @@ module.exports = {
     settings: './src/app/settings/page.jsx',
     sidepanel: './src/app/sidepanel/page.jsx',
     background: './src/app/background/index.js',
-    content: './src/app/content/main.js',
+    content: './src/app/content/content.js',
   },
   plugins: [
     new HtmlWebpackPlugin({

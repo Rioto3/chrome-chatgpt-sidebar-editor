@@ -1,7 +1,17 @@
-import { createKeyboardHandler } from '../../utils/keyboardShortcuts.js';
+import { createKeyboardHandler } from '../../../utils/keyboardShortcuts.js';
 
-// ===== ChatGPTのプロンプト入力欄にキーボードショートカットを適用 =====
-const initKeyboardShortcuts = () => {
+// ===== ChatGPT専用の初期化関数（プロンプト送信とキーボードショートカット） =====
+export function initChatGPTIntegration() {
+  console.log('🚀 ChatGPT統合機能を初期化中...');
+  
+  initKeyboardShortcuts();
+  initMessageListener();
+  
+  console.log('✅ ChatGPT統合機能の初期化完了');
+}
+
+// ===== キーボードショートカット初期化 =====
+function initKeyboardShortcuts() {
   const inputBox = document.querySelector('.ProseMirror#prompt-textarea, [contenteditable="true"][data-virtualkeyboard="true"]');
   
   if (!inputBox) {
@@ -13,9 +23,7 @@ const initKeyboardShortcuts = () => {
     return;
   }
 
-  const getText = () => {
-    return inputBox.innerText || '';
-  };
+  const getText = () => inputBox.innerText || '';
 
   const setText = (text) => {
     inputBox.focus();
@@ -89,21 +97,26 @@ const initKeyboardShortcuts = () => {
     childList: true,
     subtree: true,
   });
-};
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', initKeyboardShortcuts);
-} else {
-  initKeyboardShortcuts();
 }
 
-// ===== サイドパネルからのメッセージを受け取る（新規実装） =====
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type !== 'SEND_PROMPT') return;
+// ===== メッセージリスナー（SEND_PROMPTのみ） =====
+function initMessageListener() {
+  chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+    if (message.type === 'SEND_PROMPT') {
+      handleSendPrompt(message.payload, sendResponse);
+      return true; // 非同期レスポンスを有効化
+    }
+    
+    return false;
+  });
+  
+  console.log('✅ ChatGPTメッセージリスナー: 登録完了');
+}
 
-  console.log('📥 SEND_PROMPT受信:', message.payload);
+// ===== SEND_PROMPT処理 =====
+async function handleSendPrompt(promptText, sendResponse) {
+  console.log('📥 SEND_PROMPT受信:', promptText);
 
-  // 入力欄を探す
   const inputBox = document.querySelector('.ProseMirror#prompt-textarea, [contenteditable="true"][data-virtualkeyboard="true"]');
   
   if (!inputBox) {
@@ -122,18 +135,18 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     data: ' ',
   }));
 
-  inputBox.innerHTML = `<p>${message.payload}</p>`;
+  inputBox.innerHTML = `<p>${promptText}</p>`;
   
   inputBox.dispatchEvent(new InputEvent('input', {
     bubbles: true,
     cancelable: true,
     inputType: 'insertText',
-    data: message.payload,
+    data: promptText,
   }));
 
   console.log('✅ テキスト設定完了');
 
-  // 少し待ってから送信ボタンを探す
+  // 送信ボタンを待って送信
   setTimeout(async () => {
     const waitForSendButton = (timeout = 3000) => {
       const start = Date.now();
@@ -163,27 +176,4 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       sendResponse({ success: false, error: err.message });
     }
   }, 500);
-
-  return true; // 非同期レスポンスを有効化
-});
-
-// ===== チャットタイトル取得 =====
-chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message.type === "GET_CURRENT_CHAT_TITLE") {
-    try {
-      const path = new URL(location.href).pathname;
-      const links = document.querySelectorAll('#history a[href]');
-      for (const a of links) {
-        if (a.getAttribute('href') === path) {
-          const title = a.querySelector('span[dir="auto"]');
-          sendResponse({ title: title?.innerText || '新しいお気に入り' });
-          return true;
-        }
-      }
-      sendResponse({ title: '新しいお気に入り' });
-    } catch (e) {
-      sendResponse({ title: '新しいお気に入り', error: e.message });
-    }
-    return true;
-  }
-});
+}
