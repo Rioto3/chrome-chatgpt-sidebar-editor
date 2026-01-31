@@ -115,18 +115,23 @@ function initMessageListener() {
 
 // ===== SEND_PROMPT処理 =====
 async function handleSendPrompt(promptText, sendResponse) {
-  console.log('📥 SEND_PROMPT受信:', promptText);
+  console.log('🔵 [STEP1] SEND_PROMPT受信:', promptText);
 
   const inputBox = document.querySelector('.ProseMirror#prompt-textarea, [contenteditable="true"][data-virtualkeyboard="true"]');
   
   if (!inputBox) {
-    console.error('❌ 入力欄が見つかりません');
+    console.error('❌ [STEP2] 入力欄が見つかりません');
     sendResponse({ success: false, error: '入力欄が見つかりません' });
     return;
   }
 
+  console.log('🔵 [STEP2] 入力欄発見:', inputBox);
+  console.log('🔵 [STEP2-before] innerHTML:', inputBox.innerHTML);
+  console.log('🔵 [STEP2-before] innerText:', inputBox.innerText);
+
   // テキストを設定
   inputBox.focus();
+  console.log('🔵 [STEP3] focus完了');
   
   inputBox.dispatchEvent(new InputEvent('beforeinput', {
     bubbles: true,
@@ -134,8 +139,10 @@ async function handleSendPrompt(promptText, sendResponse) {
     inputType: 'insertText',
     data: ' ',
   }));
+  console.log('🔵 [STEP4] beforeinput発火完了');
 
   inputBox.innerHTML = `<p>${promptText}</p>`;
+  console.log('🔵 [STEP5] innerHTML書き換え完了:', inputBox.innerHTML);
   
   inputBox.dispatchEvent(new InputEvent('input', {
     bubbles: true,
@@ -143,21 +150,25 @@ async function handleSendPrompt(promptText, sendResponse) {
     inputType: 'insertText',
     data: promptText,
   }));
-
-  console.log('✅ テキスト設定完了');
+  console.log('🔵 [STEP6] input発火完了');
 
   // 送信ボタンを待って送信
   setTimeout(async () => {
+    console.log('🔵 [STEP7] 500ms待機完了、送信ボタン検索開始');
+    
     const waitForSendButton = (timeout = 3000) => {
       const start = Date.now();
       return new Promise((resolve, reject) => {
         const check = () => {
           const btn = document.querySelector('#composer-submit-button, [data-testid="send-button"]');
           if (btn) {
-            console.log('✅ 送信ボタン発見');
+            console.log('🔵 [STEP8] 送信ボタン発見:', btn);
+            console.log('🔵 [STEP8-disabled]:', btn.disabled);
+            console.log('🔵 [STEP8-classList]:', btn.classList.toString());
             return resolve(btn);
           }
           if (Date.now() - start > timeout) {
+            console.error('❌ [STEP8] 送信ボタンタイムアウト');
             return reject(new Error('送信ボタンタイムアウト'));
           }
           requestAnimationFrame(check);
@@ -168,11 +179,12 @@ async function handleSendPrompt(promptText, sendResponse) {
 
     try {
       const btn = await waitForSendButton();
+      console.log('🔵 [STEP9] クリック直前の入力欄状態:', inputBox.innerHTML);
       btn.click();
-      console.log('✅ 送信ボタンクリック成功');
+      console.log('✅ [STEP10] 送信ボタンクリック成功');
       sendResponse({ success: true });
     } catch (err) {
-      console.error('❌ 送信ボタンエラー:', err);
+      console.error('❌ [STEP9] 送信ボタンエラー:', err);
       sendResponse({ success: false, error: err.message });
     }
   }, 500);
