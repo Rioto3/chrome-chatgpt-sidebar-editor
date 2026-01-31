@@ -16,16 +16,16 @@ const SidepanelAsPage = () => {
   // const [textareaHeight, setTextareaHeight] = useState(150); // px単位
   const [textareaHeight, setTextareaHeight] = useState(250); // px単位
 
-    // folders がロードされたら、必ず currentFolder を同期する
-useEffect(() => {
-  const folderIds = Object.keys(folders || {});
-  if (folderIds.length === 0) return;
+  // folders がロードされたら、必ず currentFolder を同期する
+  useEffect(() => {
+    const folderIds = Object.keys(folders || {});
+    if (folderIds.length === 0) return;
 
-  // currentFolder が未設定 or 存在しない場合は先頭を採用
-  if (!folders[currentFolder]) {
-    setCurrentFolder(folderIds[0]);
-  }
-}, [folders]);
+    // currentFolder が未設定 or 存在しない場合は先頭を採用
+    if (!folders[currentFolder]) {
+      setCurrentFolder(folderIds[0]);
+    }
+  }, [folders]);
 
 
 
@@ -69,50 +69,50 @@ useEffect(() => {
 
 
   // ===== 初期化 =====
-useEffect(() => {
-  chrome.runtime.sendMessage({ type: "BOOKMARKS_INIT" }, (response) => {
-    if (response?.ok) {
-      setFolders(response.data);
-    } else {
-      console.error("❌ 初期化エラー:", response?.error);
-    }
-  });
-}, []);
+  useEffect(() => {
+    chrome.runtime.sendMessage({ type: "BOOKMARKS_INIT" }, (response) => {
+      if (response?.ok) {
+        setFolders(response.data);
+      } else {
+        console.error("❌ 初期化エラー:", response?.error);
+      }
+    });
+  }, []);
 
 
 
-const saveState = (newFolders) => {
-  setFolders(newFolders);
-  chrome.storage.local.set({ "ai-chat-editor-plus": newFolders });
-};
+  const saveState = (newFolders) => {
+    setFolders(newFolders);
+    chrome.storage.local.set({ "ai-chat-editor-plus": newFolders });
+  };
 
 
-const addFolder = () => {
-  setTimeout(() => {
-    const name = prompt("新しいフォルダ名を入力してください");
-    if (!name) return;
-    const id = Date.now().toString();
-    const newFolders = { ...folders, [id]: { name, items: [] } };
-    saveState(newFolders);
-    setCurrentFolder(id);
+  const addFolder = () => {
+    setTimeout(() => {
+      const name = prompt("新しいフォルダ名を入力してください");
+      if (!name) return;
+      const id = Date.now().toString();
+      const newFolders = { ...folders, [id]: { name, items: [] } };
+      saveState(newFolders);
+      setCurrentFolder(id);
 
-  }, 10);
-};
+    }, 10);
+  };
 
 
 
-const renameFolder = () => {
-  const folder = folders[currentFolder];
-  if (!folder) return;
-  setTimeout(() => {
-    if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
-    const newName = prompt("新しいフォルダ名を入力してください", folder.name);
-    if (!newName) return;
-    const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
-    saveState(updated);
+  const renameFolder = () => {
+    const folder = folders[currentFolder];
+    if (!folder) return;
+    setTimeout(() => {
+      if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
+      const newName = prompt("新しいフォルダ名を入力してください", folder.name);
+      if (!newName) return;
+      const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
+      saveState(updated);
 
-  }, 10);
-};
+    }, 10);
+  };
 
 
 
@@ -232,36 +232,12 @@ const renameFolder = () => {
     chrome.storage.local.set({ prompt: value });
   };
 
-  // ===== キーボードショートカット =====
-// const handleKeyDown = (e) => {
-//   // ⌘ + =
-//   if (e.metaKey && e.key === "=" && !e.shiftKey) {
-//     e.preventDefault();
-
-//     const insert = "===\n";
-//     const newText = promptText.endsWith("\n")
-//       ? promptText + insert
-//       : promptText + "\n" + insert;
-
-//     setPromptText(newText);
-//     chrome.storage.local.set({ prompt: newText });
-//     return;
-//   }
-
-//   // ⌘ + Enter 系（既存）
-//   if (e.metaKey && e.key === "Enter") {
-//     e.preventDefault();
-//     if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter
-//     else sendPrompt(true);             // ⌘+Enter
-//   }
-// };
-
-const handleKeyDown = createKeyboardHandler({
-  getText: () => promptText,
-  setText: setPromptText,
-  onSubmit: sendPrompt,
-  storageKey: 'prompt',
-});
+  const handleKeyDown = createKeyboardHandler({
+    getText: () => promptText,
+    setText: setPromptText,
+    onSubmit: sendPrompt,
+    storageKey: 'prompt',
+  });
 
 
   // ===== UI =====
@@ -275,22 +251,20 @@ const handleKeyDown = createKeyboardHandler({
         fontFamily: "sans-serif",
       }}
     >
-    
-
       {/* 上部：お気に入り */}
       <div
         style={{
           flex: "1 1 auto",
           overflowY: "auto",
-          padding: "0.5rem",
+          padding: "0.1rem",
         }}
       >
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            gap: "0.3rem",
-            marginBottom: "0.5rem",
+            gap: "0.2rem",
+            marginBottom: "0.3rem",
           }}
         >
           <select
@@ -323,9 +297,10 @@ const handleKeyDown = createKeyboardHandler({
                         {...provided.dragHandleProps}
                         style={{
                           userSelect: "none",
-                          padding: "6px",
-                          marginBottom: "4px",
-                          borderRadius: "5px",
+                          padding: "0.2rem 0.8rem",
+                          marginBottom: "0.2rem",
+                          borderRadius: "0.7rem",
+                          fontSize: "0.9rem",
                           background: "#f4f4f4",
                           display: "flex",
                           justifyContent: "space-between",
@@ -346,7 +321,7 @@ const handleKeyDown = createKeyboardHandler({
                             autoFocus
                             style={{
                               flexGrow: 1,
-                              fontSize: "13px",
+                              
                               padding: "2px 4px",
                             }}
                           />
@@ -368,8 +343,14 @@ const handleKeyDown = createKeyboardHandler({
                           </a>
                         )}
 
-                        <button onClick={() => startEditing(bm.id, bm.name)}>✏️</button>
-                        <button onClick={() => deleteBookmark(currentFolder, index)}>🗑</button>
+                      <div>
+
+
+                        <button style={{fontSize: "0.7rem",}} onClick={() => startEditing(bm.id, bm.name)}>✏️</button>
+                        <button style={{fontSize: "0.7rem",}} onClick={() => deleteBookmark(currentFolder, index)}>🗑</button>
+                      </div>
+
+
                       </div>
                     )}
                   </Draggable>
@@ -392,7 +373,7 @@ const handleKeyDown = createKeyboardHandler({
           position: "sticky",
           bottom: 0,
           background: "#fafafa",
-          padding: "0.5rem",
+          padding: "0 0.2rem",
           boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
           display: "flex",
           flexDirection: "column",
@@ -484,7 +465,7 @@ const handleKeyDown = createKeyboardHandler({
             flexShrink: 0,
           }}
         >
-            
+
 
           <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
             ✈️ 送信
