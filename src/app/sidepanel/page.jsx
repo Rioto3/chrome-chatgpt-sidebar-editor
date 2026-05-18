@@ -1,160 +1,517 @@
-import React, { useState, useEffect } from 'react';
-import { createRoot } from 'react-dom/client';
+// src/app/sidepanel/page.jsx
+import React, { useState, useEffect } from "react";
+import { createRoot } from "react-dom/client";
+import { DragDropContext, Droppable, Draggable } from "@hello-pangea/dnd";
+
+import { createKeyboardHandler } from "../../utils/keyboardShortcuts";
+
 
 const SidepanelAsPage = () => {
-  const [bookmarks, setBookmarks] = useState([]);
-  const [prompt, setPrompt] = useState('');
+  const [folders, setFolders] = useState({});
+  const [currentFolder, setCurrentFolder] = useState("default");
+  const [promptText, setPromptText] = useState("");
+  const [editingBookmark, setEditingBookmark] = useState(null);
+  const [editingValue, setEditingValue] = useState("");
 
+  // const [textareaHeight, setTextareaHeight] = useState(150); // px単位
+  const [textareaHeight, setTextareaHeight] = useState(250); // px単位
+
+    // folders がロードされたら、必ず currentFolder を同期する
+useEffect(() => {
+  const folderIds = Object.keys(folders || {});
+  if (folderIds.length === 0) return;
+
+  // currentFolder が未設定 or 存在しない場合は先頭を採用
+  if (!folders[currentFolder]) {
+    setCurrentFolder(folderIds[0]);
+  }
+}, [folders]);
+
+
+
+  // ===== テキストエリアのリサイズ用エフェクト =====
   useEffect(() => {
-    const storedBookmarks = localStorage.getItem('bookmarks');
-    if (storedBookmarks) setBookmarks(JSON.parse(storedBookmarks));
+    let startY = 0;
+    let startHeight = 0;
+    let isDragging = false;
 
-    const storedPrompt = localStorage.getItem('prompt');
-    if (storedPrompt) setPrompt(storedPrompt);
-  }, []);
+    const onMouseDown = (e) => {
+      isDragging = true;
+      startY = e.clientY;
+      startHeight = textareaHeight;
+      document.body.style.cursor = "ns-resize";
+    };
 
-  const handlePromptChange = (e) => {
-    const value = e.target.value;
-    setPrompt(value);
-    localStorage.setItem('prompt', value);
+    const onMouseMove = (e) => {
+      if (!isDragging) return;
+      const dy = startY - e.clientY;
+      const newHeight = Math.min(Math.max(startHeight + dy, 80), 500); // 80〜500px
+      setTextareaHeight(newHeight);
+    };
+
+    const onMouseUp = () => {
+      isDragging = false;
+      document.body.style.cursor = "default";
+    };
+
+    document.addEventListener("mousemove", onMouseMove);
+    document.addEventListener("mouseup", onMouseUp);
+
+    const grip = document.getElementById("resize-grip");
+    if (grip) grip.addEventListener("mousedown", onMouseDown);
+
+    return () => {
+      document.removeEventListener("mousemove", onMouseMove);
+      document.removeEventListener("mouseup", onMouseUp);
+      if (grip) grip.removeEventListener("mousedown", onMouseDown);
+    };
+  }, [textareaHeight]);
+
+
+  // ===== 初期化 =====
+useEffect(() => {
+  chrome.runtime.sendMessage({ type: "BOOKMARKS_INIT" }, (response) => {
+    if (response?.ok) {
+      setFolders(response.data);
+    } else {
+      console.error("❌ 初期化エラー:", response?.error);
+    }
+  });
+}, []);
+
+
+
+const saveState = (newFolders) => {
+  setFolders(newFolders);
+  chrome.storage.local.set({ "ai-chat-editor-plus": newFolders });
+};
+
+
+const addFolder = () => {
+  setTimeout(() => {
+    const name = prompt("新しいフォルダ名を入力してください");
+    if (!name) return;
+    const id = Date.now().toString();
+    const newFolders = { ...folders, [id]: { name, items: [] } };
+    saveState(newFolders);
+    setCurrentFolder(id);
+
+  }, 10);
+};
+
+
+
+const renameFolder = () => {
+  const folder = folders[currentFolder];
+  if (!folder) return;
+  setTimeout(() => {
+    if (!confirm(`フォルダ「${folder.name}」をリネームしますか？`)) return;
+    const newName = prompt("新しいフォルダ名を入力してください", folder.name);
+    if (!newName) return;
+    const updated = { ...folders, [currentFolder]: { ...folder, name: newName } };
+    saveState(updated);
+
+  }, 10);
+};
+
+
+
+  const deleteFolder = () => {
+    const folder = folders[currentFolder];
+    if (!folder) return;
+    setTimeout(() => {
+      if (!confirm(`フォルダ「${folder.name}」を削除しますか？\n中のブックマークも消えます。`)) return;
+      const newFolders = { ...folders };
+      delete newFolders[currentFolder];
+      const fallback = Object.keys(newFolders)[0] || "default";
+      setCurrentFolder(fallback);
+      saveState(newFolders);
+
+    }, 10);
   };
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(prompt);
-  };
 
-  const sendToChatGPT = (text) => {
+
+
+
+  // ===== ブックマーク操作 =====
+  const addBookmark = () => {
     chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tabId = tabs[0].id;
+      const tab = tabs[0];
+      if (!tab?.url) return;
+      const url = tab.url;
+      const title = tab.title || "新しいページ";
 
-      chrome.scripting.executeScript({
-        target: { tabId },
-        func: (text) => {
-          const inputDiv = document.querySelector('#prompt-textarea');
-          if (!inputDiv) return alert('ChatGPTの入力欄が見つかりません');
-
-          inputDiv.focus();
-          document.execCommand('selectAll', false, null);
-          document.execCommand('insertText', false, text);
-
-          setTimeout(() => {
-            const sendBtn = document.querySelector('#composer-submit-button');
-            if (sendBtn) {
-              sendBtn.click();
-            } else {
-              alert('送信ボタンが見つかりません');
-            }
-          }, 100);
+      const newItem = { id: Date.now().toString(), name: title, url };
+      const updated = {
+        ...folders,
+        [currentFolder]: {
+          ...folders[currentFolder],
+          items: [...folders[currentFolder].items, newItem],
         },
-        args: [text],
-      });
+      };
+      saveState(updated);
+
     });
   };
 
-  const handleSend = () => {
-    sendToChatGPT(prompt);
+  const startEditing = (id, name) => {
+    setEditingBookmark(id);
+    setEditingValue(name);
   };
 
-  const handleSendAndClear = () => {
-    sendToChatGPT(prompt);
-    setPrompt('');
-    localStorage.setItem('prompt', '');
+  const commitEditing = (folderId) => {
+    if (!editingBookmark) return;
+    const updatedFolder = { ...folders[folderId] };
+    const idx = updatedFolder.items.findIndex((b) => b.id === editingBookmark);
+    if (idx !== -1) {
+      updatedFolder.items[idx].name =
+        editingValue.trim() || updatedFolder.items[idx].name;
+      const newFolders = { ...folders, [folderId]: updatedFolder };
+      saveState(newFolders);
+    }
+
+    setEditingBookmark(null);
+    setEditingValue("");
   };
 
-const addCurrentChat = () => {
-  chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-    const tab = tabs[0];
-    const url = tab?.url || 'unknown';
-    const tabId = tab?.id;
+  const cancelEditing = () => {
+    setEditingBookmark(null);
+    setEditingValue("");
+  };
 
-    chrome.scripting.executeScript(
-      {
-        target: { tabId },
-        func: (currentUrl) => {
-          try {
-            const path = new URL(currentUrl).pathname;
-            const historyLinks = document.querySelectorAll('#history a[href]');
-            for (const a of historyLinks) {
-              if (a.getAttribute('href') === path) {
-                const title = a.querySelector('span[dir="auto"]');
-                return title?.innerText || null;
-              }
-            }
-            return null;
-          } catch (err) {
-            return null;
-          }
-        },
-        args: [url],
-      },
-      (results) => {
-        const title = results?.[0]?.result || '新しいお気に入り';
-        const newEntry = { name: title, url };
-        const updated = [...bookmarks, newEntry];
-        setBookmarks(updated);
-        localStorage.setItem('bookmarks', JSON.stringify(updated));
-      }
-    );
-  });
-};
+  const deleteBookmark = (folderId, index) => {
+    const folder = folders[folderId];
+    const item = folder.items[index];
+    const updatedItems = folder.items.filter((_, i) => i !== index);
+    const newFolders = {
+      ...folders,
+      [folderId]: { ...folder, items: updatedItems },
+    };
+    saveState(newFolders);
 
-  const renameBookmark = (index) => {
-    const newName = prompt('新しい名前を入力してください');
-    if (newName) {
-      const updated = [...bookmarks];
-      updated[index].name = newName;
-      setBookmarks(updated);
-      localStorage.setItem('bookmarks', JSON.stringify(updated));
+  };
+
+  // ===== 並び替え =====
+  const onDragEnd = (result) => {
+    if (!result.destination) return;
+    const { source, destination } = result;
+
+    if (source.droppableId === destination.droppableId) {
+      const folder = folders[source.droppableId];
+      const reordered = Array.from(folder.items);
+      const [moved] = reordered.splice(source.index, 1);
+      reordered.splice(destination.index, 0, moved);
+      const newFolders = {
+        ...folders,
+        [source.droppableId]: { ...folder, items: reordered },
+      };
+      saveState(newFolders);
     }
   };
 
-  const deleteBookmark = (index) => {
-    const updated = bookmarks.filter((_, i) => i !== index);
-    setBookmarks(updated);
-    localStorage.setItem('bookmarks', JSON.stringify(updated));
+  // ===== Chat送信 =====
+  const sendPrompt = (clearAfter = false) => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      const tab = tabs[0];
+      if (!tab?.id) return;
+      chrome.tabs.sendMessage(tab.id, {
+        type: "SEND_PROMPT",
+        payload: promptText,
+      });
+      if (clearAfter) {
+        setPromptText("");
+        chrome.storage.local.set({ prompt: "" });
+      }
+    });
   };
 
+  const handlePromptChange = (e) => {
+    const value = e.target.value;
+    setPromptText(value);
+    chrome.storage.local.set({ prompt: value });
+  };
+
+  // ===== キーボードショートカット =====
+// const handleKeyDown = (e) => {
+//   // ⌘ + =
+//   if (e.metaKey && e.key === "=" && !e.shiftKey) {
+//     e.preventDefault();
+
+//     const insert = "===\n";
+//     const newText = promptText.endsWith("\n")
+//       ? promptText + insert
+//       : promptText + "\n" + insert;
+
+//     setPromptText(newText);
+//     chrome.storage.local.set({ prompt: newText });
+//     return;
+//   }
+
+//   // ⌘ + Enter 系（既存）
+//   if (e.metaKey && e.key === "Enter") {
+//     e.preventDefault();
+//     if (e.shiftKey) sendPrompt(false); // ⌘+Shift+Enter
+//     else sendPrompt(true);             // ⌘+Enter
+//   }
+// };
+
+const handleKeyDown = createKeyboardHandler({
+  getText: () => promptText,
+  setText: setPromptText,
+  onSubmit: sendPrompt,
+  storageKey: 'prompt',
+});
+
+
+  // ===== UI =====
   return (
-    <div style={{ padding: '1rem', width: '320px', fontFamily: 'sans-serif' }}>
-      <h2>📌 お気に入り</h2>
-      <button onClick={addCurrentChat}>+ 今のチャットを追加</button>
-      <div style={{ marginTop: '0.5rem' }}>
-        {bookmarks.map((bm, idx) => (
-          <div key={idx} style={{ marginBottom: '0.5rem' }}>
-            <a
-              href={bm.url}
-              target="_blank"
-              rel="noreferrer"
-              style={{ marginRight: '0.5rem', color: '#007bff', textDecoration: 'none' }}
-            >
-              {bm.name}
-            </a>
-            <button onClick={() => renameBookmark(idx)}>✏️</button>
-            <button onClick={() => deleteBookmark(idx)}>🗑</button>
+    <div
+      style={{
+        height: "100vh",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        fontFamily: "sans-serif",
+      }}
+    >
+    
+
+      {/* 上部：お気に入り */}
+      <div
+        style={{
+          flex: "1 1 auto",
+          overflowY: "auto",
+          padding: "0.5rem",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: "0.3rem",
+            marginBottom: "0.5rem",
+          }}
+        >
+          <select
+            value={currentFolder in folders ? currentFolder : "default"}
+            onChange={(e) => setCurrentFolder(e.target.value)}
+            style={{ flex: 1 }}
+          >
+            {Object.entries(folders).map(([id, folder]) => (
+              <option key={id} value={id}>
+                {folder.name}
+              </option>
+            ))}
+          </select>
+          <button onClick={addFolder}>📁</button>
+          <button onClick={renameFolder}>✏️</button>
+          <button onClick={deleteFolder}>🗑</button>
+          <button onClick={addBookmark}>➕</button>
+        </div>
+
+        <DragDropContext onDragEnd={onDragEnd}>
+          <Droppable droppableId={currentFolder}>
+            {(provided) => (
+              <div {...provided.droppableProps} ref={provided.innerRef}>
+                {folders[currentFolder]?.items.map((bm, index) => (
+                  <Draggable key={bm.id} draggableId={bm.id} index={index}>
+                    {(provided) => (
+                      <div
+                        ref={provided.innerRef}
+                        {...provided.draggableProps}
+                        {...provided.dragHandleProps}
+                        style={{
+                          userSelect: "none",
+                          padding: "6px",
+                          marginBottom: "4px",
+                          borderRadius: "5px",
+                          background: "#f4f4f4",
+                          display: "flex",
+                          justifyContent: "space-between",
+                          alignItems: "center",
+                          ...provided.draggableProps.style,
+                        }}
+                      >
+                        {editingBookmark === bm.id ? (
+                          <input
+                            value={editingValue}
+                            onChange={(e) => setEditingValue(e.target.value)}
+                            onBlur={() => commitEditing(currentFolder)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter")
+                                commitEditing(currentFolder);
+                              if (e.key === "Escape") cancelEditing();
+                            }}
+                            autoFocus
+                            style={{
+                              flexGrow: 1,
+                              fontSize: "13px",
+                              padding: "2px 4px",
+                            }}
+                          />
+                        ) : (
+                          <a
+                            href={bm.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            style={{
+                              textDecoration: "none",
+                              color: "#007bff",
+                              flexGrow: 1,
+                              overflow: "hidden",
+                              textOverflow: "ellipsis",
+                              whiteSpace: "nowrap",
+                            }}
+                          >
+                            {bm.name}
+                          </a>
+                        )}
+
+                        <button onClick={() => startEditing(bm.id, bm.name)}>✏️</button>
+                        <button onClick={() => deleteBookmark(currentFolder, index)}>🗑</button>
+                      </div>
+                    )}
+                  </Draggable>
+                ))}
+                {provided.placeholder}
+              </div>
+            )}
+          </Droppable>
+        </DragDropContext>
+      </div>
+
+
+
+
+
+
+      {/* 下部：チャット入力（ドラッグで高さ調整可能） */}
+      <div
+        style={{
+          position: "sticky",
+          bottom: 0,
+          background: "#fafafa",
+          padding: "0.5rem",
+          boxShadow: "0 -2px 4px rgba(0,0,0,0.05)",
+          display: "flex",
+          flexDirection: "column",
+        }}
+      >
+        <div
+          style={{
+            position: "relative",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "stretch",
+          }}
+        >
+
+          {/* ⬆ ドラッグ用のリサイズグリップ */}
+          <div
+            id="resize-grip"
+            onMouseDown={(e) => {
+              e.preventDefault();
+              const startY = e.clientY;
+              const startHeight = textareaHeight;
+
+              const handleMouseMove = (moveEvent) => {
+                const deltaY = startY - moveEvent.clientY; // 上に動かすと+、下に動かすと-
+                const newHeight = Math.max(60, Math.min(400, startHeight + deltaY));
+                setTextareaHeight(newHeight);
+              };
+
+              const handleMouseUp = () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.body.style.userSelect = ''; // テキスト選択を復元
+              };
+
+              document.body.style.userSelect = 'none'; // ドラッグ中のテキスト選択を防止
+              document.addEventListener('mousemove', handleMouseMove);
+              document.addEventListener('mouseup', handleMouseUp);
+            }}
+            style={{
+              position: "relative",
+              height: "8px", // 判定領域を広めに
+              cursor: "ns-resize",
+              marginBottom: "4px",
+              userSelect: "none",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+            title="ドラッグして入力欄の高さを調整"
+          >
+            {/* 見た目のバー */}
+            <div
+              style={{
+                height: "6px",
+                width: "40%",
+                borderRadius: "3px",
+                background:
+                  "linear-gradient(to right, #ccc 40%, transparent 40%, transparent 60%, #ccc 60%)",
+                backgroundSize: "20px 6px",
+                pointerEvents: "none", // これは残してOK
+              }}
+            />
           </div>
-        ))}
+
+          {/* テキストエリア */}
+          <textarea
+            style={{
+              width: "100%",
+              height: `${textareaHeight}px`,
+              fontSize: "16px",
+              fontFamily: "monospace",
+              resize: "none",
+              padding: "6px",
+              boxSizing: "border-box",
+            }}
+            value={promptText}
+            onChange={handlePromptChange}
+            onKeyDown={handleKeyDown}
+            placeholder="⌘+Enterで送信、⌘+Shift+Enterで送信して消す"
+          />
+        </div>
+
+        {/* ボタン行 */}
+        <div
+          style={{
+            display: "flex",
+            gap: "0.4rem",
+            marginTop: "0.4rem",
+            flexShrink: 0,
+          }}
+        >
+            
+
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(false)}>
+            ✈️ 送信
+          </button>
+          <button style={{ flex: 1 }} onClick={() => sendPrompt(true)}>
+            ✈️ 送信して消す
+          </button>
+        </div>
       </div>
 
-      <hr style={{ margin: '1rem 0' }} />
 
-      <h3>✏️ プロンプトエディタ</h3>
-      <textarea
-        style={{ width: '100%', height: '150px', resize: 'vertical' }}
-        value={prompt}
-        onChange={handlePromptChange}
-        placeholder="プロンプトをここに書いて保存できます"
-      />
-      <div style={{ marginTop: '0.5rem', display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
-        <button onClick={handleCopy}>📋 コピー</button>
-        <button onClick={handleSend}>✈️ 送信</button>
-        <button onClick={handleSendAndClear}>🧹 送信してクリア</button>
-      </div>
+
+
+
+
+
+
+
+
+
+
     </div>
   );
 };
 
-document.addEventListener('DOMContentLoaded', () => {
-  const container = document.getElementById('root');
+document.addEventListener("DOMContentLoaded", () => {
+  const container = document.getElementById("root");
   if (container) {
     const root = createRoot(container);
     root.render(<SidepanelAsPage />);
